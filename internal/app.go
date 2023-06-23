@@ -1,10 +1,12 @@
 package internal
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	coresdk "github.com/goverland-labs/core-web-sdk"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/goverland-labs/platform-events/pkg/natsclient"
 	"github.com/nats-io/nats.go"
@@ -13,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/subscription"
 	"github.com/goverland-labs/inbox-storage/internal/user"
 	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
 	"github.com/goverland-labs/inbox-storage/pkg/health"
@@ -133,6 +136,22 @@ func (a *Application) initPrometheusWorker() error {
 func (a *Application) initHealthWorker() error {
 	srv := health.NewHealthCheckServer(a.cfg.Health.Listen, "/status", health.DefaultHandler(a.manager))
 	a.manager.AddWorker(process.NewServerWorker("health", srv))
+
+	return nil
+}
+
+func (a *Application) initSubscription() error {
+	repo := subscription.NewRepo(a.db)
+	globalRepo := subscription.NewGlobalRepo(a.db)
+	cache := subscription.NewCache()
+	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
+	service, err := subscription.NewService(repo, globalRepo, cache, a.cfg.Core.SubscriberID, cs)
+	if err != nil {
+		return fmt.Errorf("subscription service: %w", err)
+	}
+
+	// todo: use it in the grpc server
+	_ = service
 
 	return nil
 }

@@ -7,4 +7,5 @@ type App struct {
 	Nats       Nats
 	DB         DB
 	API        API
+	Core       Core
 }
