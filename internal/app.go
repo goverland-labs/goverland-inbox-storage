@@ -12,11 +12,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/goverland-labs/skeleton-go/internal/config"
-	"github.com/goverland-labs/skeleton-go/internal/user"
-	"github.com/goverland-labs/skeleton-go/pkg/grpcsrv"
-	"github.com/goverland-labs/skeleton-go/pkg/health"
-	"github.com/goverland-labs/skeleton-go/pkg/prometheus"
+	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/user"
+	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
+	"github.com/goverland-labs/inbox-storage/pkg/health"
+	"github.com/goverland-labs/inbox-storage/pkg/prometheus"
 )
 
 type Application struct {

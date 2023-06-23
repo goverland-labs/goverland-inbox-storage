@@ -1,17 +1,18 @@
-module github.com/goverland-labs/skeleton-go
+module github.com/goverland-labs/inbox-storage
 
 go 1.20
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/goverland-labs/inbox-api v0.0.3
+	github.com/goverland-labs/inbox-api v0.0.4-0.20230623091247-bfb80079c07c
 	github.com/goverland-labs/platform-events v0.0.9-0.20230621184304-daa9f498494f
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/nats-io/nats.go v1.27.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/rs/zerolog v1.29.0
+	github.com/rs/zerolog v1.29.1
 	github.com/s-larionov/process-manager v0.0.1
 	github.com/shopspring/decimal v1.3.1
 	google.golang.org/grpc v1.55.0
@@ -24,6 +25,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/goverland-labs/core-web-sdk v0.0.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.3.1 // indirect

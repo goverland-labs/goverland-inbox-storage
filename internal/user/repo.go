@@ -22,11 +22,11 @@ func (r *Repo) Update(user User) error {
 	return r.db.Save(&user).Error
 }
 
-func (r *Repo) GetByID(id uint) (*User, error) {
-	var user User
-	request := r.db.First(&user, id)
+func (r *Repo) GetByID(id string) (*User, error) {
+	user := User{ID: id}
+	request := r.db.Take(&user)
 	if err := request.Error; err != nil {
-		return nil, fmt.Errorf("get user by id #%d: %w", id, err)
+		return nil, fmt.Errorf("get user by id #%s: %w", id, err)
 	}
 
 	return &user, nil

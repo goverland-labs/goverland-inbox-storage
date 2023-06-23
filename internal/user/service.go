@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type DataProvider interface {
 	Create(User) error
 	Update(User) error
-	GetByID(uint) (*User, error)
+	GetByID(string) (*User, error)
 	GetByUuid(string) (*User, error)
 }
 
@@ -24,7 +25,7 @@ func NewService(r DataProvider) *Service {
 	}
 }
 
-func (s *Service) GetByID(id uint) (*User, error) {
+func (s *Service) GetByID(id string) (*User, error) {
 	return s.repo.GetByID(id)
 }
 
@@ -42,10 +43,30 @@ func (s *Service) CreateUser(uuid string) (*User, error) {
 		return user, nil
 	}
 
+	id, err := s.generateUserID()
+	if err != nil {
+		return nil, fmt.Errorf("generate id: %w", err)
+	}
+
 	u := User{
+		ID:         id,
 		DeviceUUID: uuid,
 	}
 	err = s.repo.Create(u)
 
 	return &u, err
+}
+
+func (s *Service) generateUserID() (string, error) {
+	id := uuid.New().String()
+	_, err := s.GetByID(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return id, nil
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("get user: %s: %w", id, err)
+	}
+
+	return s.generateUserID()
 }

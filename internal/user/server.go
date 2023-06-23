@@ -25,11 +25,11 @@ func NewServer(s *Service) *Server {
 }
 
 func (s *Server) GetByID(_ context.Context, req *proto.UserByIDRequest) (*proto.UserByIDResponse, error) {
-	if req.GetUserId() == 0 {
+	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	user, err := s.sp.GetByID(uint(req.GetUserId()))
+	user, err := s.sp.GetByID(req.GetUserId())
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
@@ -82,7 +82,7 @@ func (s *Server) Create(_ context.Context, req *proto.UserCreateRequest) (*proto
 
 func convertUserToAPI(user *User) *proto.UserInfo {
 	return &proto.UserInfo{
-		Id:         uint64(user.ID),
+		Id:         user.ID,
 		CreatedAt:  timestamppb.New(user.CreatedAt),
 		UpdatedAt:  timestamppb.New(user.UpdatedAt),
 		DeviceUuid: user.DeviceUUID,

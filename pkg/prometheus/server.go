@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/goverland-labs/skeleton-go/pkg/middleware"
+	"github.com/goverland-labs/inbox-storage/pkg/middleware"
 )
 
 const readHeaderTimeout = 30 * time.Second

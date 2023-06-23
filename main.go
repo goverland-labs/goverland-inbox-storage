@@ -6,9 +6,9 @@ import (
 	"github.com/s-larionov/process-manager"
 	"github.com/shopspring/decimal"
 
-	"github.com/goverland-labs/skeleton-go/internal"
-	"github.com/goverland-labs/skeleton-go/internal/config"
-	"github.com/goverland-labs/skeleton-go/internal/logger"
+	"github.com/goverland-labs/inbox-storage/internal"
+	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/logger"
 )
 
 const decimalDivisionPrecision = 32

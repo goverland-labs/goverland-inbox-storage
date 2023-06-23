@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/s-larionov/process-manager"
 
-	"github.com/goverland-labs/skeleton-go/pkg/middleware"
+	"github.com/goverland-labs/inbox-storage/pkg/middleware"
 )
 
 const readHeaderTimeout = 30 * time.Second

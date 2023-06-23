@@ -1,9 +1,13 @@
 package user
 
-import "gorm.io/gorm"
+import (
+	"time"
+)
 
 type User struct {
-	gorm.Model
-
+	ID         string `gorm:"primary_key"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  time.Time
 	DeviceUUID string
 }
