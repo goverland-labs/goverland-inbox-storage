@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -51,6 +52,7 @@ func (s *Service) CreateUser(uuid string) (*User, error) {
 	u := User{
 		ID:         id,
 		DeviceUUID: uuid,
+		CreatedAt:  time.Now(),
 	}
 	err = s.repo.Create(u)
 

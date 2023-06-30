@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/goverland-labs/core-web-sdk v0.0.1
-	github.com/goverland-labs/inbox-api v0.0.4
+	github.com/goverland-labs/inbox-api v0.0.5-0.20230630152425-49e915260dc4
 	github.com/goverland-labs/platform-events v0.0.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0

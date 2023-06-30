@@ -1,15 +1,28 @@
 package subscription
 
-import "gorm.io/gorm"
+import (
+	"time"
+)
 
 type UserSubscription struct {
-	gorm.Model
-	UserID string
-	DaoID  string
+	ID        string `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
+	UserID    string
+	DaoID     string
 }
 
 type GlobalSubscription struct {
-	gorm.Model
+	ID           string `gorm:"primary_key"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    time.Time
 	SubscriberID string
 	DaoID        string
+}
+
+type UserSubscriptionList struct {
+	Subscriptions []UserSubscription
+	TotalCount    int64
 }
