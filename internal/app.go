@@ -28,7 +28,8 @@ type Application struct {
 	cfg     config.App
 	db      *gorm.DB
 
-	us *user.Service
+	us  *user.Service
+	sub *subscription.Service
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -117,6 +118,9 @@ func (a *Application) initServices() error {
 	_ = pb
 
 	a.initUsers()
+	if err = a.initSubscription(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -150,8 +154,7 @@ func (a *Application) initSubscription() error {
 		return fmt.Errorf("subscription service: %w", err)
 	}
 
-	// todo: use it in the grpc server
-	_ = service
+	a.sub = service
 
 	return nil
 }
@@ -166,6 +169,7 @@ func (a *Application) initAPI() error {
 		authInterceptor.AuthAndIdentifyTickerFunc,
 	)
 
+	inboxapi.RegisterSubscriptionServer(srv, subscription.NewServer(a.sub))
 	inboxapi.RegisterUserServer(srv, user.NewServer(a.us))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))

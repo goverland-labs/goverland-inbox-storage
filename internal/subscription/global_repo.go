@@ -20,7 +20,7 @@ func (r *GlobalRepo) Delete(item GlobalSubscription) error {
 	return r.db.Delete(&item).Error
 }
 
-func (r *GlobalRepo) GetByID(subscriberID, daoID string) (GlobalSubscription, error) {
+func (r *GlobalRepo) GetBySubscriptionAndDaoID(subscriberID, daoID string) (GlobalSubscription, error) {
 	var res GlobalSubscription
 	err := r.db.
 		Where(&GlobalSubscription{

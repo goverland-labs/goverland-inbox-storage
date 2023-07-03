@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -38,7 +40,7 @@ func NewService(r *Repo, gr *GlobalRepo, c Cacher, subID string, cs CoreSubscrib
 }
 
 func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSubscription, error) {
-	sub, err := s.repo.GetByID(info.UserID, info.DaoID)
+	sub, err := s.repo.GetBySubscriberAndDaoID(info.UserID, info.DaoID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("get subscription: %w", err)
 	}
@@ -47,8 +49,15 @@ func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSu
 		return &sub, nil
 	}
 
+	id, err := s.generateID()
+	if err != nil {
+		return nil, fmt.Errorf("generate id: %w", err)
+	}
+
 	err = s.makeGlobalSubscription(ctx, info.DaoID)
 
+	info.ID = id
+	info.CreatedAt = time.Now()
 	err = s.repo.Create(info)
 	if err != nil {
 		return nil, fmt.Errorf("create subscription: %w", err)
@@ -59,18 +68,18 @@ func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSu
 	return &info, err
 }
 
-func (s *Service) Unsubscribe(_ context.Context, info UserSubscription) error {
-	sub, err := s.repo.GetByID(info.UserID, info.DaoID)
+func (s *Service) Unsubscribe(_ context.Context, id string) error {
+	sub, err := s.repo.GetByID(id)
 	if err != nil {
 		return fmt.Errorf("get subscription: %w", err)
 	}
 
-	err = s.repo.Delete(sub)
+	err = s.repo.Delete(*sub)
 	if err != nil {
-		return fmt.Errorf("delete scubscription[%s - %s]: %w", info.UserID, info.DaoID, err)
+		return fmt.Errorf("delete scubscription: %s: %w", id, err)
 	}
 
-	go s.cache.RemoveItem(info.DaoID, info.UserID)
+	go s.cache.RemoveItem(sub.DaoID, sub.UserID)
 
 	return nil
 }
@@ -102,7 +111,7 @@ func (s *Service) makeGlobalSubscription(ctx context.Context, daoID string) erro
 		return nil
 	}
 
-	_, err := s.globalRepo.GetByID(s.subID, daoID)
+	_, err := s.globalRepo.GetBySubscriptionAndDaoID(s.subID, daoID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("get global subscription: %s: %w", daoID, err)
 	}
@@ -118,7 +127,13 @@ func (s *Service) makeGlobalSubscription(ctx context.Context, daoID string) erro
 		return fmt.Errorf("subscribe on core dao: %s: %w", daoID, err)
 	}
 
+	id, err := s.generateID()
+	if err != nil {
+		return fmt.Errorf("generate id: %w", err)
+	}
+
 	err = s.globalRepo.Create(GlobalSubscription{
+		ID:           id,
 		SubscriberID: s.subID,
 		DaoID:        daoID,
 	})
@@ -129,4 +144,31 @@ func (s *Service) makeGlobalSubscription(ctx context.Context, daoID string) erro
 	go s.cache.AddItems(key)
 
 	return nil
+}
+
+func (s *Service) GetByID(id string) (*UserSubscription, error) {
+	return s.repo.GetByID(id)
+}
+
+func (s *Service) generateID() (string, error) {
+	id := uuid.New().String()
+	_, err := s.GetByID(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return id, nil
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("get user subscription: %s: %w", id, err)
+	}
+
+	return s.generateID()
+}
+
+func (s *Service) GetByFilters(filters []Filter) (UserSubscriptionList, error) {
+	list, err := s.repo.GetByFilters(filters)
+	if err != nil {
+		return UserSubscriptionList{}, fmt.Errorf("get by filters: %w", err)
+	}
+
+	return list, nil
 }
