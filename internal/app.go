@@ -118,6 +118,9 @@ func (a *Application) initServices() error {
 	_ = pb
 
 	a.initUsers()
+	if err = a.initSubscription(); err != nil {
+		return err
+	}
 
 	return nil
 }
