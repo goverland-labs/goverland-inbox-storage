@@ -8,4 +8,5 @@ type App struct {
 	DB         DB
 	API        API
 	Core       Core
+	Vault      Vault
 }
