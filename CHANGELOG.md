@@ -7,8 +7,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.3] - 2023-07-11
+
 ### Fixed
-- Fixed dockerfile
+- Fixed Dockerfile
+- Fixed linter warnings
+- Fixed .gitignore file
 
 ### Added
 - User settings
