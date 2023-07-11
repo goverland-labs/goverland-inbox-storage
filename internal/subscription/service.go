@@ -55,6 +55,9 @@ func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSu
 	}
 
 	err = s.makeGlobalSubscription(ctx, info.DaoID)
+	if err != nil {
+		return nil, err
+	}
 
 	info.ID = id
 	info.CreatedAt = time.Now()
