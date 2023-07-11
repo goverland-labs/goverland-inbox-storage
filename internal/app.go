@@ -9,12 +9,14 @@ import (
 	coresdk "github.com/goverland-labs/core-web-sdk"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/goverland-labs/platform-events/pkg/natsclient"
+	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/nats-io/nats.go"
 	"github.com/s-larionov/process-manager"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/settings"
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
 	"github.com/goverland-labs/inbox-storage/internal/user"
 	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
@@ -28,8 +30,9 @@ type Application struct {
 	cfg     config.App
 	db      *gorm.DB
 
-	us  *user.Service
-	sub *subscription.Service
+	us       *user.Service
+	sub      *subscription.Service
+	settings *settings.Service
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -121,6 +124,26 @@ func (a *Application) initServices() error {
 	if err = a.initSubscription(); err != nil {
 		return err
 	}
+	if err = a.initPushes(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *Application) initPushes() error {
+	vc, err := vaultapi.NewClient(&vaultapi.Config{
+		Address: a.cfg.Vault.Address,
+	})
+	if err != nil {
+		return err
+	}
+
+	vc.SetToken(a.cfg.Vault.Token)
+	repo := settings.NewPushRepo(vc.Logical(), a.cfg.Vault.BasePath)
+	service := settings.NewService(repo)
+
+	a.settings = service
 
 	return nil
 }
@@ -171,6 +194,7 @@ func (a *Application) initAPI() error {
 
 	inboxapi.RegisterSubscriptionServer(srv, subscription.NewServer(a.sub))
 	inboxapi.RegisterUserServer(srv, user.NewServer(a.us))
+	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
 
