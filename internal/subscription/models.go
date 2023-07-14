@@ -3,25 +3,26 @@ package subscription
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type UserSubscription struct {
-	ID        string `gorm:"primary_key"`
+	ID        uuid.UUID `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	UserID    string
-	DaoID     string
+	UserID    uuid.UUID
+	DaoID     uuid.UUID
 }
 
 type GlobalSubscription struct {
-	ID           string `gorm:"primary_key"`
+	ID           uuid.UUID `gorm:"primary_key"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	SubscriberID string
-	DaoID        string
+	SubscriberID uuid.UUID
+	DaoID        uuid.UUID
 }
 
 type UserSubscriptionList struct {

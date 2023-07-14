@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +21,7 @@ func (r *GlobalRepo) Delete(item GlobalSubscription) error {
 	return r.db.Delete(&item).Error
 }
 
-func (r *GlobalRepo) GetBySubscriptionAndDaoID(subscriberID, daoID string) (GlobalSubscription, error) {
+func (r *GlobalRepo) GetBySubscriptionAndDaoID(subscriberID, daoID uuid.UUID) (GlobalSubscription, error) {
 	var res GlobalSubscription
 	err := r.db.
 		Where(&GlobalSubscription{

@@ -1,26 +1,30 @@
 package subscription
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/google/uuid"
+)
 
 type Cache struct {
 	mu sync.RWMutex
 
-	data map[string]map[string]struct{}
+	data map[string]map[uuid.UUID]struct{}
 }
 
 func NewCache() *Cache {
 	return &Cache{
-		data: make(map[string]map[string]struct{}),
+		data: make(map[string]map[uuid.UUID]struct{}),
 	}
 }
 
-func (c *Cache) AddItems(key string, values ...string) {
+func (c *Cache) AddItems(key string, values ...uuid.UUID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	data, ok := c.data[key]
 	if !ok {
-		data = make(map[string]struct{})
+		data = make(map[uuid.UUID]struct{})
 	}
 
 	for _, val := range values {
@@ -30,11 +34,11 @@ func (c *Cache) AddItems(key string, values ...string) {
 	c.data[key] = data
 }
 
-func (c *Cache) UpdateItems(key string, values ...string) {
+func (c *Cache) UpdateItems(key string, values ...uuid.UUID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	data := make(map[string]struct{})
+	data := make(map[uuid.UUID]struct{})
 	for _, val := range values {
 		data[val] = struct{}{}
 	}
@@ -42,16 +46,16 @@ func (c *Cache) UpdateItems(key string, values ...string) {
 	c.data[key] = data
 }
 
-func (c *Cache) GetItems(key string) ([]string, bool) {
+func (c *Cache) GetItems(key string) ([]uuid.UUID, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	data, ok := c.data[key]
 	if !ok {
-		return []string{}, false
+		return []uuid.UUID{}, false
 	}
 
-	res := make([]string, len(data))
+	res := make([]uuid.UUID, len(data))
 	idx := 0
 	for val := range data {
 		res[idx] = val
@@ -61,7 +65,7 @@ func (c *Cache) GetItems(key string) ([]string, bool) {
 	return res, true
 }
 
-func (c *Cache) RemoveItem(key, value string) {
+func (c *Cache) RemoveItem(key string, value uuid.UUID) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

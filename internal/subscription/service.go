@@ -11,25 +11,25 @@ import (
 )
 
 type Cacher interface {
-	AddItems(string, ...string)
-	RemoveItem(string, string)
-	UpdateItems(string, ...string)
-	GetItems(string) ([]string, bool)
+	AddItems(string, ...uuid.UUID)
+	RemoveItem(string, uuid.UUID)
+	UpdateItems(string, ...uuid.UUID)
+	GetItems(string) ([]uuid.UUID, bool)
 }
 
 type CoreSubscriber interface {
-	SubscribeOnDao(ctx context.Context, subscriberID, daoID string) error
+	SubscribeOnDao(ctx context.Context, subscriberID, daoID uuid.UUID) error
 }
 
 type Service struct {
 	repo       *Repo
 	globalRepo *GlobalRepo
 	cache      Cacher
-	subID      string
+	subID      uuid.UUID
 	core       CoreSubscriber
 }
 
-func NewService(r *Repo, gr *GlobalRepo, c Cacher, subID string, cs CoreSubscriber) (*Service, error) {
+func NewService(r *Repo, gr *GlobalRepo, c Cacher, subID uuid.UUID, cs CoreSubscriber) (*Service, error) {
 	return &Service{
 		repo:       r,
 		globalRepo: gr,
@@ -66,12 +66,12 @@ func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSu
 		return nil, fmt.Errorf("create subscription: %w", err)
 	}
 
-	go s.cache.AddItems(info.DaoID, info.UserID)
+	go s.cache.AddItems(info.DaoID.String(), info.UserID)
 
 	return &info, err
 }
 
-func (s *Service) Unsubscribe(_ context.Context, id string) error {
+func (s *Service) Unsubscribe(_ context.Context, id uuid.UUID) error {
 	sub, err := s.repo.GetByID(id)
 	if err != nil {
 		return fmt.Errorf("get subscription: %w", err)
@@ -82,13 +82,13 @@ func (s *Service) Unsubscribe(_ context.Context, id string) error {
 		return fmt.Errorf("delete scubscription: %s: %w", id, err)
 	}
 
-	go s.cache.RemoveItem(sub.DaoID, sub.UserID)
+	go s.cache.RemoveItem(sub.DaoID.String(), sub.UserID)
 
 	return nil
 }
 
-func (s *Service) GetSubscribers(_ context.Context, daoID string) ([]string, error) {
-	if list, ok := s.cache.GetItems(daoID); ok {
+func (s *Service) GetSubscribers(_ context.Context, daoID uuid.UUID) ([]uuid.UUID, error) {
+	if list, ok := s.cache.GetItems(daoID.String()); ok {
 		return list, nil
 	}
 
@@ -97,19 +97,19 @@ func (s *Service) GetSubscribers(_ context.Context, daoID string) ([]string, err
 		return nil, fmt.Errorf("get subscribers: %w", err)
 	}
 
-	response := make([]string, len(data))
+	response := make([]uuid.UUID, len(data))
 	for i, sub := range data {
 		response[i] = sub.UserID
 	}
 
-	go s.cache.UpdateItems(daoID, response...)
+	go s.cache.UpdateItems(daoID.String(), response...)
 
 	return response, nil
 }
 
 // todo: add unscubscribe
-func (s *Service) makeGlobalSubscription(ctx context.Context, daoID string) error {
-	key := fmt.Sprintf("global_%s", daoID)
+func (s *Service) makeGlobalSubscription(ctx context.Context, daoID uuid.UUID) error {
+	key := fmt.Sprintf("global_%s", daoID.String())
 	if _, ok := s.cache.GetItems(key); ok {
 		return nil
 	}
@@ -149,19 +149,19 @@ func (s *Service) makeGlobalSubscription(ctx context.Context, daoID string) erro
 	return nil
 }
 
-func (s *Service) GetByID(id string) (*UserSubscription, error) {
+func (s *Service) GetByID(id uuid.UUID) (*UserSubscription, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *Service) generateID() (string, error) {
-	id := uuid.New().String()
+func (s *Service) generateID() (uuid.UUID, error) {
+	id := uuid.New()
 	_, err := s.GetByID(id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return id, nil
 	}
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", fmt.Errorf("get user subscription: %s: %w", id, err)
+		return uuid.UUID{}, fmt.Errorf("get user subscription: %s: %w", id, err)
 	}
 
 	return s.generateID()

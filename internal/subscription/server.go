@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
@@ -32,23 +33,33 @@ func NewServer(s *Service) *Server {
 
 func (s *Server) Subscribe(ctx context.Context, req *proto.SubscribeRequest) (*proto.SubscriptionInfo, error) {
 	if req.GetDaoId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid dao ID")
+		return nil, status.Error(codes.InvalidArgument, "invalid dao id")
 	}
 
 	if req.GetSubscriberId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid subscriber ID")
+		return nil, status.Error(codes.InvalidArgument, "invalid subscriber id")
+	}
+
+	subscriberID, err := uuid.Parse(req.GetSubscriberId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid subscriber id")
+	}
+
+	daoID, err := uuid.Parse(req.GetDaoId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid dao id")
 	}
 
 	sub, err := s.sp.Subscribe(ctx, UserSubscription{
-		UserID: req.GetSubscriberId(),
-		DaoID:  req.GetDaoId(),
+		UserID: subscriberID,
+		DaoID:  daoID,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("subscribe: %s", req.GetDaoId())
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return convertSubscriptionToAPI(sub), nil
+	return convertSubscriptionToProto(sub), nil
 }
 
 func (s *Server) Unsubscribe(ctx context.Context, req *proto.UnsubscribeRequest) (*emptypb.Empty, error) {
@@ -56,8 +67,12 @@ func (s *Server) Unsubscribe(ctx context.Context, req *proto.UnsubscribeRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid subscription ID")
 	}
 
-	err := s.sp.Unsubscribe(ctx, req.GetSubscriptionId())
+	id, err := uuid.Parse(req.GetSubscriptionId())
 	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid subscription id")
+	}
+
+	if err := s.sp.Unsubscribe(ctx, id); err != nil {
 		log.Error().Err(err).Msgf("unsubscribe: %s", req.GetSubscriptionId())
 		return nil, status.Error(codes.Internal, "internal error")
 	}
@@ -94,7 +109,7 @@ func (s *Server) ListSubscriptions(_ context.Context, req *proto.ListSubscriptio
 	}
 
 	for i, info := range list.Subscriptions {
-		res.Items[i] = convertSubscriptionToAPI(&info)
+		res.Items[i] = convertSubscriptionToProto(&info)
 	}
 
 	return res, nil
@@ -105,9 +120,14 @@ func (s *Server) GetSubscription(_ context.Context, req *proto.GetSubscriptionRe
 		return nil, status.Error(codes.InvalidArgument, "invalid subscription ID")
 	}
 
-	sub, err := s.sp.GetByID(req.GetSubscriptionId())
+	id, err := uuid.Parse(req.GetSubscriptionId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+
+	sub, err := s.sp.GetByID(id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
 	if err != nil {
@@ -115,14 +135,14 @@ func (s *Server) GetSubscription(_ context.Context, req *proto.GetSubscriptionRe
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return convertSubscriptionToAPI(sub), nil
+	return convertSubscriptionToProto(sub), nil
 }
 
-func convertSubscriptionToAPI(us *UserSubscription) *proto.SubscriptionInfo {
+func convertSubscriptionToProto(us *UserSubscription) *proto.SubscriptionInfo {
 	return &proto.SubscriptionInfo{
-		SubscriptionId: us.ID,
-		SubscriberId:   us.UserID,
-		DaoId:          us.DaoID,
+		SubscriptionId: us.ID.String(),
+		SubscriberId:   us.UserID.String(),
+		DaoId:          us.DaoID.String(),
 		CreatedAt:      timestamppb.New(us.CreatedAt),
 	}
 }

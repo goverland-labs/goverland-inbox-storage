@@ -7,6 +7,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Updated core-web-sdk dependency to v0.0.7
+
+### Changed
+- Changed sql schema of the database
+
 ## [0.0.5] - 2023-07-12
 
 ### Fixed
