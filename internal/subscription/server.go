@@ -138,6 +138,28 @@ func (s *Server) GetSubscription(_ context.Context, req *proto.GetSubscriptionRe
 	return convertSubscriptionToProto(sub), nil
 }
 
+func (s *Server) FindSubscribers(ctx context.Context, req *proto.FindSubscribersRequest) (*proto.UserList, error) {
+	id, err := uuid.Parse(req.GetDaoId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid dao id")
+	}
+
+	subscribers, err := s.sp.GetSubscribers(ctx, id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "unable to get subscribers")
+	}
+
+	response := &proto.UserList{
+		Users: make([]*proto.UserID, 0, len(subscribers)),
+	}
+
+	for _, subscriber := range subscribers {
+		response.Users = append(response.Users, &proto.UserID{UserId: subscriber.String()})
+	}
+
+	return response, nil
+}
+
 func convertSubscriptionToProto(us *UserSubscription) *proto.SubscriptionInfo {
 	return &proto.SubscriptionInfo{
 		SubscriptionId: us.ID.String(),

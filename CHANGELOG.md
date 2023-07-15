@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Added method for fetching subscribers by DAO
+
 ## [0.0.7] - 2023-07-15
 
 ### Fixed
