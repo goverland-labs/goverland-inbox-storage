@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.9] - 2023-07-27
+
 ### Added
 - Added method for getting push token
 
