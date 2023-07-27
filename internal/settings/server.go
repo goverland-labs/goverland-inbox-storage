@@ -96,3 +96,24 @@ func (s *Server) PushTokenExists(_ context.Context, req *proto.PushTokenExistsRe
 		Exists: exists,
 	}, nil
 }
+
+func (s *Server) GetPushToken(_ context.Context, req *proto.GetPushTokenRequest) (*proto.PushTokenResponse, error) {
+	if req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	if _, err := s.users.GetByID(req.GetUserId()); err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	token, err := s.sp.GetByUserID(req.GetUserId())
+	if err != nil {
+		log.Error().Err(err).Msgf("get token for user: %s", req.GetUserId())
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &proto.PushTokenResponse{
+		Token: token,
+	}, nil
+}
