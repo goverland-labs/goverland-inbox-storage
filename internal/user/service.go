@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,8 @@ type DataProvider interface {
 	Update(User) error
 	GetByID(string) (*User, error)
 	GetByUuid(string) (*User, error)
+	AddRecentlyView(rv RecentlyViewed) error
+	GetLastViewed(filters []Filter) ([]RecentlyViewed, error)
 }
 
 type Service struct {
@@ -71,4 +74,25 @@ func (s *Service) generateUserID() (string, error) {
 	}
 
 	return s.generateUserID()
+}
+
+func (s *Service) AddView(userID uuid.UUID, vt RecentlyType, id string) error {
+	return s.repo.AddRecentlyView(RecentlyViewed{
+		UserID: userID,
+		Type:   vt,
+		TypeID: id,
+	})
+}
+
+func (s *Service) LastViewed(filters []Filter) ([]RecentlyViewed, error) {
+	list, err := s.repo.GetLastViewed(filters)
+	if err != nil {
+		return nil, fmt.Errorf("get last viewed: %w", err)
+	}
+
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i].CreatedAt.After(list[j].CreatedAt)
+	})
+
+	return list, nil
 }

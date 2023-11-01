@@ -41,3 +41,32 @@ func (r *Repo) GetByUuid(uuid string) (*User, error) {
 
 	return &user, nil
 }
+
+func (r *Repo) AddRecentlyView(rv RecentlyViewed) error {
+	return r.db.Create(&rv).Error
+}
+
+func (r *Repo) GetLastViewed(filters []Filter) ([]RecentlyViewed, error) {
+	db := r.db.
+		Model(&RecentlyViewed{}).
+		Select("DISTINCT ON (type_id) type_id, *")
+	for _, f := range filters {
+		if _, ok := f.(PageFilter); ok {
+			continue
+		}
+		db = f.Apply(db)
+	}
+
+	for _, f := range filters {
+		if _, ok := f.(PageFilter); ok {
+			db = f.Apply(db)
+		}
+	}
+
+	var list []RecentlyViewed
+	if err := db.Find(&list).Error; err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
