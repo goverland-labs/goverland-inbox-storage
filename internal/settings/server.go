@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 
-	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 
 	"github.com/goverland-labs/inbox-storage/internal/user"
 )
@@ -108,8 +109,11 @@ func (s *Server) GetPushToken(_ context.Context, req *proto.GetPushTokenRequest)
 
 	token, err := s.sp.GetByUserID(req.GetUserId())
 	if err != nil {
-		log.Error().Err(err).Msgf("get token for user: %s", req.GetUserId())
+		if !errors.Is(err, ErrTokenNotFound) {
+			return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		}
 
+		log.Error().Err(err).Msgf("get token for user: %s", req.GetUserId())
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
