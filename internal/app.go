@@ -12,6 +12,8 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/nats-io/nats.go"
 	"github.com/s-larionov/process-manager"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -172,7 +174,13 @@ func (a *Application) initSubscription() error {
 	globalRepo := subscription.NewGlobalRepo(a.db)
 	cache := subscription.NewCache()
 	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
-	service, err := subscription.NewService(repo, globalRepo, cache, a.cfg.Core.SubscriberID, cs)
+
+	feedConn, err := grpc.Dial(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("create connection with storage server: %v", err)
+	}
+	fc := inboxapi.NewFeedClient(feedConn)
+	service, err := subscription.NewService(repo, globalRepo, cache, a.cfg.Core.SubscriberID, cs, fc)
 	if err != nil {
 		return fmt.Errorf("subscription service: %w", err)
 	}

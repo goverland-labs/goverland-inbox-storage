@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Subscribe request also feed subscription
+
 ## [0.0.11] - 2023-11-03
 
 ### Added

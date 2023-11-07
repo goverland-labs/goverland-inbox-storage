@@ -7,6 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
 
@@ -21,21 +25,27 @@ type CoreSubscriber interface {
 	SubscribeOnDao(ctx context.Context, subscriberID, daoID uuid.UUID) error
 }
 
+type FeedClient interface {
+	UserSubscribe(context.Context, *inboxapi.UserSubscribeRequest, ...grpc.CallOption) (*emptypb.Empty, error)
+}
+
 type Service struct {
 	repo       *Repo
 	globalRepo *GlobalRepo
 	cache      Cacher
 	subID      uuid.UUID
 	core       CoreSubscriber
+	feed       FeedClient
 }
 
-func NewService(r *Repo, gr *GlobalRepo, c Cacher, subID uuid.UUID, cs CoreSubscriber) (*Service, error) {
+func NewService(r *Repo, gr *GlobalRepo, c Cacher, subID uuid.UUID, cs CoreSubscriber, fc FeedClient) (*Service, error) {
 	return &Service{
 		repo:       r,
 		globalRepo: gr,
 		cache:      c,
 		subID:      subID,
 		core:       cs,
+		feed:       fc,
 	}, nil
 }
 
@@ -65,6 +75,15 @@ func (s *Service) Subscribe(ctx context.Context, info UserSubscription) (*UserSu
 	if err != nil {
 		return nil, fmt.Errorf("create subscription: %w", err)
 	}
+
+	go func(userID, daoID string) {
+		if _, err := s.feed.UserSubscribe(context.WithoutCancel(ctx), &inboxapi.UserSubscribeRequest{
+			SubscriberId: userID,
+			DaoId:        daoID,
+		}); err != nil {
+			log.Warn().Err(err).Msgf("user subscribe %s to %s", userID, daoID)
+		}
+	}(info.UserID.String(), info.DaoID.String())
 
 	go s.cache.AddItems(info.DaoID.String(), info.UserID)
 
