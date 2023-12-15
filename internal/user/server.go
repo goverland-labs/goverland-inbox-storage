@@ -26,60 +26,131 @@ func NewServer(s *Service) *Server {
 	}
 }
 
-func (s *Server) GetByID(_ context.Context, req *proto.UserByIDRequest) (*proto.UserByIDResponse, error) {
-	if req.GetUserId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+func (s *Server) CreateSession(_ context.Context, req *proto.CreateSessionRequest) (*proto.CreateSessionResponse, error) {
+	var (
+		role           Role
+		address        *string
+		guestSessionID *string
+	)
+
+	switch req.Account.(type) {
+	case *proto.CreateSessionRequest_Guest:
+		role = GuestRole
+	case *proto.CreateSessionRequest_Regular:
+		role = RegularRole
+		address = &req.GetRegular().Address
+		guestSessionID = req.GetRegular().GuestSessionId
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid account type")
 	}
 
-	user, err := s.sp.GetByID(req.GetUserId())
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	if role == UnknownRole {
+		return nil, status.Error(codes.InvalidArgument, "invalid role")
 	}
 
+	request := CreateSessionRequest{
+		Address:        address,
+		GuestSessionID: guestSessionID,
+		DeviceUUID:     req.GetDeviceUuid(),
+		DeviceName:     req.DeviceName,
+		Role:           role,
+	}
+
+	session, err := s.sp.CreateSession(request)
 	if err != nil {
-		log.Error().Err(err).Msgf("get user by id: %s", req.GetUserId())
+		log.Error().Err(err).Msgf("create session")
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return &proto.UserByIDResponse{
-		User: convertUserToAPI(user),
+	profileInfo, err := s.sp.GetProfileInfo(session.UserID)
+	if err != nil {
+		log.Error().Err(err).Msgf("get profile info")
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &proto.CreateSessionResponse{
+		CreatedSession: s.convertSessionToAPI(session),
+		UserProfile:    s.convertProfileInfoToAPI(profileInfo),
 	}, nil
 }
 
-func (s *Server) GetByUuid(_ context.Context, req *proto.UserByUuidRequest) (*proto.UserByUuidResponse, error) {
-	if req.GetDeviceUuid() == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid device uuid")
-	}
-
-	user, err := s.sp.GetByUuid(req.GetDeviceUuid())
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Error(codes.InvalidArgument, "invalid device uuid")
-	}
-
+func (s *Server) GetUserProfile(ctx context.Context, req *proto.GetUserProfileRequest) (*proto.UserProfile, error) {
+	userID, err := uuid.Parse(req.GetUserId())
 	if err != nil {
-		log.Error().Err(err).Msgf("get user by device uuid: %s", req.GetDeviceUuid())
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	profileInfo, err := s.sp.GetProfileInfo(userID)
+	if err != nil {
+		log.Error().Err(err).Msgf("get profile info")
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return &proto.UserByUuidResponse{
-		User: convertUserToAPI(user),
+	return s.convertProfileInfoToAPI(profileInfo), nil
+}
+
+func (s *Server) GetSession(_ context.Context, req *proto.GetSessionRequest) (*proto.GetSessionResponse, error) {
+	sessionID, err := uuid.Parse(req.GetSessionId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid session ID")
+	}
+
+	session, err := s.sp.GetSessionByID(sessionID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Error(codes.InvalidArgument, "invalid session ID")
+	}
+	if err != nil {
+		log.Error().Err(err).Msgf("get session by id: %s", req.GetSessionId())
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	user, err := s.sp.GetByID(session.UserID)
+	if err != nil {
+		log.Error().Err(err).Msgf("get user by id: %s", session.UserID)
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &proto.GetSessionResponse{
+		Session: s.convertSessionToAPI(session),
+		User:    convertUserToAPI(user),
 	}, nil
 }
 
-func (s *Server) Create(_ context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
-	if req.GetDeviceUuid() == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid device uuid")
+func (s *Server) DeleteSession(_ context.Context, req *proto.DeleteSessionRequest) (*emptypb.Empty, error) {
+	sessionID, err := uuid.Parse(req.GetSessionId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid session ID")
 	}
 
-	user, err := s.sp.CreateUser(req.GetDeviceUuid())
+	err = s.sp.DeleteSession(sessionID)
 	if err != nil {
-		log.Error().Err(err).Msgf("get user by device uuid: %s", req.GetDeviceUuid())
+		log.Error().Err(err).Msgf("delete session by id: %s", req.GetSessionId())
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return &proto.UserCreateResponse{
-		User: convertUserToAPI(user),
-	}, nil
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) DeleteUser(ctx context.Context, req *proto.DeleteUserRequest) (*emptypb.Empty, error) {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	err = s.sp.DeleteUser(userID)
+	if err != nil {
+		log.Error().Err(err).Msgf("delete user by id: %s", req.GetUserId())
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) AddView(_ context.Context, req *proto.UserViewRequest) (*emptypb.Empty, error) {
@@ -121,6 +192,28 @@ func (s *Server) LastViewed(_ context.Context, req *proto.UserLastViewedRequest)
 	}, nil
 }
 
+func (s *Server) convertProfileInfoToAPI(profileInfo ProfileInfo) *proto.UserProfile {
+	var lastSessions []*proto.Session
+	for i := range profileInfo.LastSessions {
+		lastSessions = append(lastSessions, s.convertSessionToAPI(&profileInfo.LastSessions[i]))
+	}
+
+	return &proto.UserProfile{
+		User:         convertUserToAPI(profileInfo.User),
+		LastSessions: lastSessions,
+	}
+}
+
+func (s *Server) convertSessionToAPI(session *Session) *proto.Session {
+	return &proto.Session{
+		Id:         session.ID.String(),
+		CreatedAt:  timestamppb.New(session.CreatedAt),
+		DeviceUuid: session.DeviceUUID,
+		DeviceName: session.DeviceName,
+		UserId:     session.UserID.String(),
+	}
+}
+
 func convertRecentlyType(rt proto.RecentlyViewedType) RecentlyType {
 	switch rt {
 	case proto.RecentlyViewedType_RECENTLY_VIEWED_TYPE_DAO:
@@ -130,12 +223,20 @@ func convertRecentlyType(rt proto.RecentlyViewedType) RecentlyType {
 	}
 }
 
+// TODO mote to converters
+var roleToProtoRole = map[Role]proto.UserRole{
+	RegularRole: proto.UserRole_USER_ROLE_REGULAR,
+	GuestRole:   proto.UserRole_USER_ROLE_GUEST,
+}
+
 func convertUserToAPI(user *User) *proto.UserInfo {
 	return &proto.UserInfo{
-		Id:         user.ID,
+		Id:         user.ID.String(),
 		CreatedAt:  timestamppb.New(user.CreatedAt),
 		UpdatedAt:  timestamppb.New(user.UpdatedAt),
 		DeviceUuid: user.DeviceUUID,
+		Address:    user.Address,
+		Role:       roleToProtoRole[user.Role],
 	}
 }
 

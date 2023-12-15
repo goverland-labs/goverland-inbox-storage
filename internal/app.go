@@ -152,7 +152,8 @@ func (a *Application) initPushes() error {
 
 func (a *Application) initUsers() {
 	repo := user.NewRepo(a.db)
-	a.us = user.NewService(repo)
+	sessionRepo := user.NewSessionRepo(a.db)
+	a.us = user.NewService(repo, sessionRepo)
 }
 
 func (a *Application) initPrometheusWorker() error {
