@@ -7,6 +7,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.13] - 2023-12-20
+
+### Added
+- Added user sessions, roles
+- Suppor new user api
+
 ## [0.0.12] - 2023-11-07
 
 ### Changed
