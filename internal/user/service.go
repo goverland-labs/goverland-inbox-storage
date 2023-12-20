@@ -4,32 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type DataProvider interface {
-	Create(User) error
-	Update(User) error
-	GetByID(string) (*User, error)
-	GetByUuid(string) (*User, error)
-	AddRecentlyView(rv RecentlyViewed) error
-	GetLastViewed(filters []Filter) ([]RecentlyViewed, error)
-}
-
 type Service struct {
-	repo DataProvider
+	repo        *Repo
+	sessionRepo *SessionRepo
 }
 
-func NewService(r DataProvider) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo) *Service {
 	return &Service{
-		repo: r,
+		repo:        repo,
+		sessionRepo: sessionRepo,
 	}
 }
 
-func (s *Service) GetByID(id string) (*User, error) {
+func (s *Service) GetByID(id uuid.UUID) (*User, error) {
 	return s.repo.GetByID(id)
 }
 
@@ -37,43 +29,109 @@ func (s *Service) GetByUuid(uuid string) (*User, error) {
 	return s.repo.GetByUuid(uuid)
 }
 
-func (s *Service) CreateUser(uuid string) (*User, error) {
-	user, err := s.repo.GetByUuid(uuid)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("get user: %w", err)
-	}
+func (s *Service) GetProfileInfo(userID uuid.UUID) (ProfileInfo, error) {
+	const countLastSessions = 10
 
-	if err == nil {
-		return user, nil
-	}
-
-	id, err := s.generateUserID()
+	user, err := s.repo.GetByID(userID)
 	if err != nil {
-		return nil, fmt.Errorf("generate id: %w", err)
+		return ProfileInfo{}, fmt.Errorf("get user by id: %w", err)
 	}
 
-	u := User{
-		ID:         id,
-		DeviceUUID: uuid,
-		CreatedAt:  time.Now(),
+	sessions, err := s.sessionRepo.GetLastSessions(user.ID, countLastSessions)
+	if err != nil {
+		return ProfileInfo{}, fmt.Errorf("get last sessions: %w", err)
 	}
-	err = s.repo.Create(u)
 
-	return &u, err
+	return ProfileInfo{
+		User:         user,
+		LastSessions: sessions,
+	}, nil
 }
 
-func (s *Service) generateUserID() (string, error) {
-	id := uuid.New().String()
-	_, err := s.GetByID(id)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return id, nil
+func (s *Service) GetSessionByID(id uuid.UUID) (*Session, error) {
+	return s.sessionRepo.GetByID(id)
+}
+
+func (s *Service) DeleteSession(id uuid.UUID) error {
+	err := s.sessionRepo.Delete(id)
+	if err != nil {
+		return fmt.Errorf("delete session: %w", err)
 	}
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", fmt.Errorf("get user: %s: %w", id, err)
+	return nil
+}
+
+// DeleteUser TODO do it in transaction
+func (s *Service) DeleteUser(id uuid.UUID) error {
+	err := s.sessionRepo.DeleteAllByUserID(id)
+	if err != nil {
+		return fmt.Errorf("delete sessions: %w", err)
 	}
 
-	return s.generateUserID()
+	err = s.repo.Delete(id)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) {
+	var (
+		user *User
+		err  error
+	)
+	if request.Role == GuestRole {
+		user, err = s.repo.GetByUuid(request.DeviceUUID)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("get user: %w", err)
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			user = &User{
+				ID:         uuid.New(),
+				Role:       GuestRole,
+				DeviceUUID: request.DeviceUUID,
+			}
+			err = s.repo.Create(user)
+			if err != nil {
+				return nil, fmt.Errorf("create guest user: %w", err)
+			}
+		}
+	}
+	if request.Role == RegularRole {
+		if request.Address == nil {
+			return nil, fmt.Errorf("address is required for regular user")
+		}
+		user, err = s.repo.GetByAddress(*request.Address)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("get user: %w", err)
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			user = &User{
+				ID:      uuid.New(),
+				Role:    RegularRole,
+				Address: request.Address,
+			}
+			err = s.repo.Create(user)
+			if err != nil {
+				return nil, fmt.Errorf("create regular user: %w", err)
+			}
+		}
+	}
+
+	session := Session{
+		ID:         uuid.New(),
+		UserID:     user.ID,
+		DeviceUUID: request.DeviceUUID,
+		DeviceName: request.DeviceName,
+	}
+
+	err = s.sessionRepo.Create(&session)
+	if err != nil {
+		return nil, fmt.Errorf("create session: %w", err)
+	}
+
+	return &session, nil
 }
 
 func (s *Service) AddView(userID uuid.UUID, vt RecentlyType, id string) error {

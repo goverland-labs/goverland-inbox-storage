@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,7 +16,7 @@ import (
 )
 
 type UserProvider interface {
-	GetByID(id string) (*user.User, error)
+	GetByID(id uuid.UUID) (*user.User, error)
 }
 
 type Server struct {
@@ -33,7 +34,8 @@ func NewServer(s *Service, up UserProvider) *Server {
 }
 
 func (s *Server) AddPushToken(_ context.Context, req *proto.AddPushTokenRequest) (*emptypb.Empty, error) {
-	if req.GetUserId() == "" {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
@@ -41,7 +43,7 @@ func (s *Server) AddPushToken(_ context.Context, req *proto.AddPushTokenRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid token")
 	}
 
-	if _, err := s.users.GetByID(req.GetUserId()); err != nil {
+	if _, err := s.users.GetByID(userID); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
@@ -55,11 +57,12 @@ func (s *Server) AddPushToken(_ context.Context, req *proto.AddPushTokenRequest)
 }
 
 func (s *Server) RemovePushToken(_ context.Context, req *proto.RemovePushTokenRequest) (*emptypb.Empty, error) {
-	if req.GetUserId() == "" {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	if _, err := s.users.GetByID(req.GetUserId()); err != nil {
+	if _, err := s.users.GetByID(userID); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
@@ -73,15 +76,16 @@ func (s *Server) RemovePushToken(_ context.Context, req *proto.RemovePushTokenRe
 }
 
 func (s *Server) PushTokenExists(_ context.Context, req *proto.PushTokenExistsRequest) (*proto.PushTokenExistsResponse, error) {
-	if req.GetUserId() == "" {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	if _, err := s.users.GetByID(req.GetUserId()); err != nil {
+	if _, err := s.users.GetByID(userID); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	_, err := s.sp.GetByUserID(req.GetUserId())
+	_, err = s.sp.GetByUserID(req.GetUserId())
 	if err != nil && !errors.Is(err, ErrTokenNotFound) {
 		log.Error().Err(err).Msgf("get token for user: %s", req.GetUserId())
 
@@ -99,11 +103,12 @@ func (s *Server) PushTokenExists(_ context.Context, req *proto.PushTokenExistsRe
 }
 
 func (s *Server) GetPushToken(_ context.Context, req *proto.GetPushTokenRequest) (*proto.PushTokenResponse, error) {
-	if req.GetUserId() == "" {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	if _, err := s.users.GetByID(req.GetUserId()); err != nil {
+	if _, err := s.users.GetByID(userID); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 

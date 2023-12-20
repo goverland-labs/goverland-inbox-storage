@@ -12,14 +12,41 @@ type RecentlyType string
 const (
 	RecentlyTypeUnspecified = "unspecified"
 	RecentlyTypeDao         = "dao"
+
+	UnknownRole Role = ""
+	GuestRole   Role = "GUEST"
+	RegularRole Role = "REGULAR"
 )
 
+type Role string
+
 type User struct {
-	ID         string `gorm:"primary_key"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	ID uuid.UUID `gorm:"primary_key"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
+	Role Role
+
+	Address    *string
+	DeviceUUID string // only for guest support, remove in future
+}
+
+type Session struct {
+	ID     uuid.UUID `gorm:"primary_key"`
+	UserID uuid.UUID `gorm:"index"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+
 	DeviceUUID string
+	DeviceName string
+}
+
+func (s *Session) TableName() string {
+	return "user_sessions"
 }
 
 type RecentlyViewed struct {
