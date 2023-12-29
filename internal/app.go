@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	coresdk "github.com/goverland-labs/core-web-sdk"
+	"github.com/goverland-labs/helpers-ens-resolver/proto"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/goverland-labs/platform-events/pkg/natsclient"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -32,9 +33,10 @@ type Application struct {
 	cfg     config.App
 	db      *gorm.DB
 
-	us       *user.Service
-	sub      *subscription.Service
-	settings *settings.Service
+	us        *user.Service
+	sub       *subscription.Service
+	settings  *settings.Service
+	ensClient proto.EnsClient
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -63,7 +65,7 @@ func (a *Application) Run() {
 func (a *Application) bootstrap() error {
 	initializers := []func() error{
 		a.initDB,
-
+		a.initEnsResolver,
 		// Init Dependencies
 		a.initServices,
 
@@ -102,6 +104,17 @@ func (a *Application) initDB() error {
 	}
 
 	return err
+}
+
+func (a *Application) initEnsResolver() error {
+	conn, err := grpc.Dial(a.cfg.API.EnsResolverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("create connection with ens resolver: %v", err)
+	}
+
+	a.ensClient = proto.NewEnsClient(conn)
+
+	return nil
 }
 
 func (a *Application) initServices() error {
@@ -153,7 +166,10 @@ func (a *Application) initPushes() error {
 func (a *Application) initUsers() {
 	repo := user.NewRepo(a.db)
 	sessionRepo := user.NewSessionRepo(a.db)
-	a.us = user.NewService(repo, sessionRepo)
+	a.us = user.NewService(repo, sessionRepo, a.ensClient)
+
+	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
+	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
 }
 
 func (a *Application) initPrometheusWorker() error {

@@ -30,6 +30,7 @@ type User struct {
 	Role Role
 
 	Address    *string
+	ENS        *string
 	DeviceUUID string // only for guest support, remove in future
 }
 

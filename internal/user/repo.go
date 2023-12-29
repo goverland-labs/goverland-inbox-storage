@@ -53,6 +53,27 @@ func (r *Repo) GetByAddress(address string) (*User, error) {
 	return &user, nil
 }
 
+// GetWithoutEnsName TODO partial optimization
+func (r *Repo) GetRegularWithoutEnsName() ([]User, error) {
+	var list []User
+	request := r.db.
+		Where("role = ?", RegularRole).
+		Where("ens IS NULL").
+		Find(&list)
+	if err := request.Error; err != nil {
+		return nil, fmt.Errorf("get users without ens: %w", err)
+	}
+
+	return list, nil
+}
+
+func (r *Repo) UpdateEnsWhereAddress(address, ens string) error {
+	return r.db.Model(&User{}).
+		Where("address = ?", address).
+		Update("ens", ens).
+		Error
+}
+
 func (r *Repo) AddRecentlyView(rv RecentlyViewed) error {
 	return r.db.Create(&rv).Error
 }

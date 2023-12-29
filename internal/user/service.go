@@ -1,23 +1,32 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/goverland-labs/helpers-ens-resolver/proto"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
+
+const ensTimeout = 500 * time.Millisecond
 
 type Service struct {
 	repo        *Repo
 	sessionRepo *SessionRepo
+
+	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo, ensClient proto.EnsClient) *Service {
 	return &Service{
 		repo:        repo,
 		sessionRepo: sessionRepo,
+		ensClient:   ensClient,
 	}
 }
 
@@ -111,6 +120,7 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 				ID:      uuid.New(),
 				Role:    RegularRole,
 				Address: request.Address,
+				ENS:     s.resolveENSAddress(*request.Address),
 			}
 			err = s.repo.Create(user)
 			if err != nil {
@@ -153,4 +163,32 @@ func (s *Service) LastViewed(filters []Filter) ([]RecentlyViewed, error) {
 	})
 
 	return list, nil
+}
+
+func (s *Service) resolveENSAddress(address string) *string {
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), ensTimeout)
+	defer cancel()
+	domains, err := s.ensClient.ResolveDomains(ctxWithTimeout, &proto.ResolveDomainsRequest{
+		Addresses: []string{address},
+	})
+	if err != nil {
+		log.Warn().Err(err).Str("address", address).Msg("cannot resolve ens address")
+
+		return nil
+	}
+
+	if len(domains.GetAddresses()) != 1 {
+		log.Info().Str("address", address).Msg("address response is not one element")
+
+		return nil
+	}
+
+	ensName := domains.GetAddresses()[0].GetEnsName()
+	if ensName == "" {
+		log.Info().Str("address", address).Msg("empty ens name")
+
+		return nil
+	}
+
+	return &ensName
 }
