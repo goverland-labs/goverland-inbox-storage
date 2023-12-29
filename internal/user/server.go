@@ -236,6 +236,7 @@ func convertUserToAPI(user *User) *proto.UserInfo {
 		UpdatedAt:  timestamppb.New(user.UpdatedAt),
 		DeviceUuid: user.DeviceUUID,
 		Address:    user.Address,
+		Ens:        user.ENS,
 		Role:       roleToProtoRole[user.Role],
 	}
 }
