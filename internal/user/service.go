@@ -13,7 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const ensTimeout = 500 * time.Millisecond
+const (
+	ensTimeout     = 500 * time.Millisecond
+	activityWindow = 15 * time.Minute
+)
 
 type Service struct {
 	repo        *Repo
@@ -191,4 +194,32 @@ func (s *Service) resolveENSAddress(address string) *string {
 	}
 
 	return &ensName
+}
+
+func (s *Service) TrackActivity(userID uuid.UUID) error {
+	activity, err := s.repo.GetLastActivityInPeriod(userID, activityWindow)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("s.repo.GetLastActivityInPeriod: %w", err)
+	}
+
+	if activity != nil {
+		activity.FinishedAt = time.Now()
+		return s.repo.UpdateUserActivity(activity)
+	}
+
+	activity = &Activity{
+		UserID:     userID,
+		FinishedAt: time.Now(),
+	}
+
+	return s.repo.AddUserActivity(activity)
+}
+
+func (s *Service) GetLastActivity(userID uuid.UUID) (*Activity, error) {
+	activity, err := s.repo.GetLastActivity(userID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("s.repo.GetLastActivity: %w", err)
+	}
+
+	return activity, nil
 }

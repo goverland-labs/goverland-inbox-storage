@@ -66,3 +66,14 @@ type RecentlyViewedList struct {
 	Views      []RecentlyViewed
 	TotalCount int64
 }
+
+type Activity struct {
+	gorm.Model
+
+	UserID     uuid.UUID
+	FinishedAt time.Time
+}
+
+func (a *Activity) TableName() string {
+	return "user_activity"
+}

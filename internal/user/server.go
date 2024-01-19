@@ -192,15 +192,36 @@ func (s *Server) LastViewed(_ context.Context, req *proto.UserLastViewedRequest)
 	}, nil
 }
 
+func (s *Server) TrackActivity(_ context.Context, req *proto.TrackActivityRequest) (*emptypb.Empty, error) {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user id has wrong value")
+	}
+
+	if err := s.sp.TrackActivity(userID); err != nil {
+		log.Err(err).Msg("save track activity")
+
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
 func (s *Server) convertProfileInfoToAPI(profileInfo ProfileInfo) *proto.UserProfile {
 	var lastSessions []*proto.Session
 	for i := range profileInfo.LastSessions {
 		lastSessions = append(lastSessions, s.convertSessionToAPI(&profileInfo.LastSessions[i]))
 	}
 
+	var lastActivity *timestamppb.Timestamp
+	if activity, err := s.sp.GetLastActivity(profileInfo.User.ID); err == nil && activity != nil {
+		lastActivity = timestamppb.New(activity.FinishedAt)
+	}
+
 	return &proto.UserProfile{
-		User:         convertUserToAPI(profileInfo.User),
-		LastSessions: lastSessions,
+		User:           convertUserToAPI(profileInfo.User),
+		LastSessions:   lastSessions,
+		LastActivityAt: lastActivity,
 	}
 }
 
