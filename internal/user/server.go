@@ -249,6 +249,22 @@ func (s *Server) convertProfileInfoToAPI(profileInfo ProfileInfo) *proto.UserPro
 	}
 }
 
+func (s *Server) AllowSendingPush(_ context.Context, req *proto.AllowSendingPushRequest) (*proto.AllowSendingPushResponse, error) {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user id has wrong format")
+	}
+
+	allow, err := s.sp.AllowSendingPush(userID)
+	if err != nil {
+		log.Error().Err(err).Msgf("allowSendingPush caclulating")
+
+		return nil, status.Error(codes.Internal, "internal err")
+	}
+
+	return &proto.AllowSendingPushResponse{Allow: allow}, nil
+}
+
 func (s *Server) convertSessionToAPI(session *Session) *proto.Session {
 	var lastActvityAt *timestamppb.Timestamp
 	if !session.LastActivityAt.IsZero() {

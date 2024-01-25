@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	ensTimeout     = 500 * time.Millisecond
-	activityWindow = 15 * time.Minute
+	ensTimeout = 500 * time.Millisecond
 )
 
 type Service struct {
 	repo          *Repo
 	sessionRepo   *SessionRepo
 	authNonceRepo *AuthNonceRepo
+	activityCache *cache
 
 	ensClient proto.EnsClient
 }
@@ -32,6 +32,7 @@ func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRe
 		sessionRepo:   sessionRepo,
 		ensClient:     ensClient,
 		authNonceRepo: authNonceRepo,
+		activityCache: newCache(),
 	}
 }
 
