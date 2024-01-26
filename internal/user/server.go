@@ -76,6 +76,31 @@ func (s *Server) CreateSession(_ context.Context, req *proto.CreateSessionReques
 	}, nil
 }
 
+func (s *Server) UseAuthNonce(ctx context.Context, req *proto.UseAuthNonceRequest) (*proto.UseAuthNonceResponse, error) {
+	if req.GetNonce() == "" {
+		return nil, status.Error(codes.InvalidArgument, "invalid nonce")
+	}
+	if req.GetAddress() == "" {
+		return nil, status.Error(codes.InvalidArgument, "invalid address")
+	}
+
+	valid, err := s.sp.UseAuthNonce(req.GetAddress(), req.GetNonce(), req.GetExpiredAt().AsTime())
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("nonce", req.Nonce).
+			Str("address", req.Address).
+			Time("expired_at", req.ExpiredAt.AsTime()).
+			Msgf("use auth nonce")
+
+		return nil, status.Error(codes.Unauthenticated, "cannot use nonce")
+	}
+
+	return &proto.UseAuthNonceResponse{
+		Valid: valid,
+	}, nil
+}
+
 func (s *Server) GetUserProfile(ctx context.Context, req *proto.GetUserProfileRequest) (*proto.UserProfile, error) {
 	userID, err := uuid.Parse(req.GetUserId())
 	if err != nil {
@@ -198,7 +223,12 @@ func (s *Server) TrackActivity(_ context.Context, req *proto.TrackActivityReques
 		return nil, status.Error(codes.InvalidArgument, "user id has wrong value")
 	}
 
-	if err := s.sp.TrackActivity(userID); err != nil {
+	sessionID, err := uuid.Parse(req.GetSessionId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "session id has wrong value")
+	}
+
+	if err := s.sp.TrackActivity(userID, sessionID); err != nil {
 		log.Err(err).Msg("save track activity")
 
 		return nil, status.Error(codes.Internal, err.Error())
@@ -213,25 +243,24 @@ func (s *Server) convertProfileInfoToAPI(profileInfo ProfileInfo) *proto.UserPro
 		lastSessions = append(lastSessions, s.convertSessionToAPI(&profileInfo.LastSessions[i]))
 	}
 
-	var lastActivity *timestamppb.Timestamp
-	if activity, err := s.sp.GetLastActivity(profileInfo.User.ID); err == nil && activity != nil {
-		lastActivity = timestamppb.New(activity.FinishedAt)
-	}
-
 	return &proto.UserProfile{
-		User:           convertUserToAPI(profileInfo.User),
-		LastSessions:   lastSessions,
-		LastActivityAt: lastActivity,
+		User:         convertUserToAPI(profileInfo.User),
+		LastSessions: lastSessions,
 	}
 }
 
 func (s *Server) convertSessionToAPI(session *Session) *proto.Session {
+	var lastActvityAt *timestamppb.Timestamp
+	if !session.LastActivityAt.IsZero() {
+		lastActvityAt = timestamppb.New(session.LastActivityAt)
+	}
 	return &proto.Session{
-		Id:         session.ID.String(),
-		CreatedAt:  timestamppb.New(session.CreatedAt),
-		DeviceUuid: session.DeviceUUID,
-		DeviceName: session.DeviceName,
-		UserId:     session.UserID.String(),
+		Id:             session.ID.String(),
+		CreatedAt:      timestamppb.New(session.CreatedAt),
+		DeviceUuid:     session.DeviceUUID,
+		DeviceName:     session.DeviceName,
+		UserId:         session.UserID.String(),
+		LastActivityAt: lastActvityAt,
 	}
 }
 

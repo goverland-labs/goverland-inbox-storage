@@ -1,6 +1,8 @@
 package user
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -48,4 +50,12 @@ func (r *SessionRepo) Delete(id uuid.UUID) error {
 
 func (r *SessionRepo) DeleteAllByUserID(userID uuid.UUID) error {
 	return r.db.Where("user_id = ?", userID).Delete(&Session{}).Error
+}
+
+func (r *SessionRepo) UpdateLastActivityAt(id uuid.UUID, lastActivityAt time.Time) error {
+	return r.db.
+		Model(&Session{}).
+		Where("id = ?", id).
+		Update("last_activity_at", lastActivityAt).
+		Error
 }

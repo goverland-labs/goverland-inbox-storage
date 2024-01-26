@@ -129,18 +129,3 @@ func (r *Repo) GetLastActivityInPeriod(userID uuid.UUID, window time.Duration) (
 
 	return &activity, nil
 }
-
-func (r *Repo) GetLastActivity(userID uuid.UUID) (*Activity, error) {
-	var activity Activity
-	req := r.db.
-		Model(&Activity{}).
-		Where("user_id = ?", userID).
-		Order("finished_at desc").
-		First(&activity)
-
-	if err := req.Error; err != nil {
-		return nil, err
-	}
-
-	return &activity, nil
-}

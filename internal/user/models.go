@@ -44,6 +44,8 @@ type Session struct {
 
 	DeviceUUID string
 	DeviceName string
+
+	LastActivityAt time.Time
 }
 
 func (s *Session) TableName() string {
@@ -76,4 +78,14 @@ type Activity struct {
 
 func (a *Activity) TableName() string {
 	return "user_activity"
+}
+
+type AuthNonce struct {
+	Address   string    `gorm:"primary_key"`
+	Nonce     string    `gorm:"primary_key"`
+	ExpiredAt time.Time `gorm:"primary_key"`
+}
+
+func (a *AuthNonce) TableName() string {
+	return "auth_nonces"
 }

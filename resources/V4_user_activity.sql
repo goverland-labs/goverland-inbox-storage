@@ -10,3 +10,6 @@ create table user_activity
 
 create index if not exists idx_user_activity_deleted_at on user_activity (deleted_at);
 create index if not exists idx_user_activity_user on user_activity (user_id);
+
+alter table user_sessions
+    add column last_activity_at timestamp with time zone;
