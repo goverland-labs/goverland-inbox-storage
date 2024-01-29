@@ -32,7 +32,12 @@ var (
 	}
 )
 
-func (s *Service) TrackActivity(userID uuid.UUID) error {
+func (s *Service) TrackActivity(userID, sessionID uuid.UUID) error {
+	err := s.sessionRepo.UpdateLastActivityAt(sessionID, time.Now())
+	if err != nil {
+		return fmt.Errorf("s.sessionRepo.UpdateLastActivityAt: %w", err)
+	}
+
 	activity, err := s.repo.GetLastActivityInPeriod(userID, activityWindow)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("s.repo.GetLastActivityInPeriod: %w", err)
