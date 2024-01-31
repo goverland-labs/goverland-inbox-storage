@@ -87,7 +87,9 @@ func (a *Application) bootstrap() error {
 }
 
 func (a *Application) initDB() error {
-	db, err := gorm.Open(postgres.Open(a.cfg.DB.DSN), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(a.cfg.DB.DSN), &gorm.Config{
+		TranslateError: true,
+	})
 	if err != nil {
 		return err
 	}
@@ -166,7 +168,8 @@ func (a *Application) initPushes() error {
 func (a *Application) initUsers() {
 	repo := user.NewRepo(a.db)
 	sessionRepo := user.NewSessionRepo(a.db)
-	a.us = user.NewService(repo, sessionRepo, a.ensClient)
+	authNonceRepo := user.NewAuthNonceRepo(a.db)
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))

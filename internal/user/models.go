@@ -44,6 +44,8 @@ type Session struct {
 
 	DeviceUUID string
 	DeviceName string
+
+	LastActivityAt time.Time
 }
 
 func (s *Session) TableName() string {
@@ -65,4 +67,25 @@ func (rv *RecentlyViewed) TableName() string {
 type RecentlyViewedList struct {
 	Views      []RecentlyViewed
 	TotalCount int64
+}
+
+type Activity struct {
+	gorm.Model
+
+	UserID     uuid.UUID
+	FinishedAt time.Time
+}
+
+func (a *Activity) TableName() string {
+	return "user_activity"
+}
+
+type AuthNonce struct {
+	Address   string    `gorm:"primary_key"`
+	Nonce     string    `gorm:"primary_key"`
+	ExpiredAt time.Time `gorm:"primary_key"`
+}
+
+func (a *AuthNonce) TableName() string {
+	return "auth_nonces"
 }

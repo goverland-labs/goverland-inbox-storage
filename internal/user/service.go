@@ -13,20 +13,25 @@ import (
 	"gorm.io/gorm"
 )
 
-const ensTimeout = 500 * time.Millisecond
+const (
+	ensTimeout     = 500 * time.Millisecond
+	activityWindow = 15 * time.Minute
+)
 
 type Service struct {
-	repo        *Repo
-	sessionRepo *SessionRepo
+	repo          *Repo
+	sessionRepo   *SessionRepo
+	authNonceRepo *AuthNonceRepo
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, ensClient proto.EnsClient) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, ensClient proto.EnsClient) *Service {
 	return &Service{
-		repo:        repo,
-		sessionRepo: sessionRepo,
-		ensClient:   ensClient,
+		repo:          repo,
+		sessionRepo:   sessionRepo,
+		ensClient:     ensClient,
+		authNonceRepo: authNonceRepo,
 	}
 }
 
@@ -55,6 +60,26 @@ func (s *Service) GetProfileInfo(userID uuid.UUID) (ProfileInfo, error) {
 		User:         user,
 		LastSessions: sessions,
 	}, nil
+}
+
+func (s *Service) UseAuthNonce(address string, nonce string, expiredAt time.Time) (bool, error) {
+	if expiredAt.Before(time.Now()) {
+		return false, nil
+	}
+
+	err := s.authNonceRepo.Create(&AuthNonce{
+		Address:   address,
+		Nonce:     nonce,
+		ExpiredAt: expiredAt,
+	})
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, errDuplicateEntity) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func (s *Service) GetSessionByID(id uuid.UUID) (*Session, error) {
@@ -130,10 +155,11 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 	}
 
 	session := Session{
-		ID:         uuid.New(),
-		UserID:     user.ID,
-		DeviceUUID: request.DeviceUUID,
-		DeviceName: request.DeviceName,
+		ID:             uuid.New(),
+		UserID:         user.ID,
+		DeviceUUID:     request.DeviceUUID,
+		DeviceName:     request.DeviceName,
+		LastActivityAt: time.Now(),
 	}
 
 	err = s.sessionRepo.Create(&session)
@@ -191,4 +217,28 @@ func (s *Service) resolveENSAddress(address string) *string {
 	}
 
 	return &ensName
+}
+
+func (s *Service) TrackActivity(userID, sessionID uuid.UUID) error {
+	err := s.sessionRepo.UpdateLastActivityAt(sessionID, time.Now())
+	if err != nil {
+		return fmt.Errorf("s.sessionRepo.UpdateLastActivityAt: %w", err)
+	}
+
+	activity, err := s.repo.GetLastActivityInPeriod(userID, activityWindow)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("s.repo.GetLastActivityInPeriod: %w", err)
+	}
+
+	if activity != nil {
+		activity.FinishedAt = time.Now()
+		return s.repo.UpdateUserActivity(activity)
+	}
+
+	activity = &Activity{
+		UserID:     userID,
+		FinishedAt: time.Now(),
+	}
+
+	return s.repo.AddUserActivity(activity)
 }

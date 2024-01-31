@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -105,4 +106,26 @@ func (r *Repo) GetLastViewed(filters []Filter) ([]RecentlyViewed, error) {
 
 func (r *Repo) Delete(id uuid.UUID) error {
 	return r.db.Delete(&User{ID: id}).Error
+}
+
+func (r *Repo) AddUserActivity(a *Activity) error {
+	return r.db.Create(a).Error
+}
+
+func (r *Repo) UpdateUserActivity(a *Activity) error {
+	return r.db.Save(a).Error
+}
+
+func (r *Repo) GetLastActivityInPeriod(userID uuid.UUID, window time.Duration) (*Activity, error) {
+	var activity Activity
+	req := r.db.
+		Model(&Activity{}).
+		Where("user_id = ?", userID).
+		Where("finished_at >= ?", time.Now().Add(-1*window)).
+		Take(&activity)
+	if err := req.Error; err != nil {
+		return nil, err
+	}
+
+	return &activity, nil
 }

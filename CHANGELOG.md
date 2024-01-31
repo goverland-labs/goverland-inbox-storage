@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Tracking user activity endpoint
+- Added user nonce usage for replay protection
+
 ## [0.0.14] - 2023-12-29
 
 ### Added
