@@ -7,10 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.0.15] - 2024-01-31
-
 ### Added
 - Calculating intervals for sending push notifications
+
+## [0.0.15] - 2024-01-31
 
 ### Added
 - Tracking user activity endpoint
