@@ -1,6 +1,9 @@
 package user
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -53,4 +56,48 @@ type TypeFilter struct {
 
 func (f TypeFilter) Apply(db *gorm.DB) *gorm.DB {
 	return db.Where("type = ?", f.Type)
+}
+
+type ActivityFilterBetween struct {
+	From time.Time
+	To   time.Time
+}
+
+func (f ActivityFilterBetween) Apply(db *gorm.DB) *gorm.DB {
+	var (
+		dummy = Activity{}
+		_     = dummy.CreatedAt
+	)
+
+	if !f.From.IsZero() {
+		db = db.Where("created_at >= ?", f.From)
+	}
+
+	if !f.To.IsZero() {
+		db = db.Where("created_at <= ?", f.To)
+	}
+
+	return db
+}
+
+type ActivityFilterUserID struct {
+	UserID uuid.UUID
+}
+
+func (f ActivityFilterUserID) Apply(db *gorm.DB) *gorm.DB {
+	var (
+		dummy = Activity{}
+		_     = dummy.UserID
+	)
+
+	return db.Where("user_id = ?", f.UserID)
+}
+
+type ActivityFilterUserIDOrderBy struct {
+	Field     string
+	Direction string
+}
+
+func (f ActivityFilterUserIDOrderBy) Apply(db *gorm.DB) *gorm.DB {
+	return db.Order(fmt.Sprintf("%s %s", f.Field, f.Direction))
 }
