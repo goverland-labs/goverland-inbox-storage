@@ -222,30 +222,6 @@ func (s *Service) resolveENSAddress(address string) *string {
 	return &ensName
 }
 
-func (s *Service) TrackActivity(userID, sessionID uuid.UUID) error {
-	err := s.sessionRepo.UpdateLastActivityAt(sessionID, time.Now())
-	if err != nil {
-		return fmt.Errorf("s.sessionRepo.UpdateLastActivityAt: %w", err)
-	}
-
-	activity, err := s.repo.GetLastActivityInPeriod(userID, activityWindow)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("s.repo.GetLastActivityInPeriod: %w", err)
-	}
-
-	if activity != nil {
-		activity.FinishedAt = time.Now()
-		return s.repo.UpdateUserActivity(activity)
-	}
-
-	activity = &Activity{
-		UserID:     userID,
-		FinishedAt: time.Now(),
-	}
-
-	return s.repo.AddUserActivity(activity)
-}
-
 func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
 	proposals, err := s.canVoteRepo.GetByUser(userID)
 	if err != nil {
