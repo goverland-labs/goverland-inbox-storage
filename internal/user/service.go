@@ -22,17 +22,19 @@ type Service struct {
 	sessionRepo   *SessionRepo
 	authNonceRepo *AuthNonceRepo
 	activityCache *cache
+	canVoteRepo   *CanVoteRepo
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, ensClient proto.EnsClient) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteRepo *CanVoteRepo, ensClient proto.EnsClient) *Service {
 	return &Service{
 		repo:          repo,
 		sessionRepo:   sessionRepo,
-		ensClient:     ensClient,
 		authNonceRepo: authNonceRepo,
 		activityCache: newCache(),
+		canVoteRepo:   canVoteRepo,
+		ensClient:     ensClient,
 	}
 }
 
@@ -218,4 +220,42 @@ func (s *Service) resolveENSAddress(address string) *string {
 	}
 
 	return &ensName
+}
+
+func (s *Service) TrackActivity(userID, sessionID uuid.UUID) error {
+	err := s.sessionRepo.UpdateLastActivityAt(sessionID, time.Now())
+	if err != nil {
+		return fmt.Errorf("s.sessionRepo.UpdateLastActivityAt: %w", err)
+	}
+
+	activity, err := s.repo.GetLastActivityInPeriod(userID, activityWindow)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("s.repo.GetLastActivityInPeriod: %w", err)
+	}
+
+	if activity != nil {
+		activity.FinishedAt = time.Now()
+		return s.repo.UpdateUserActivity(activity)
+	}
+
+	activity = &Activity{
+		UserID:     userID,
+		FinishedAt: time.Now(),
+	}
+
+	return s.repo.AddUserActivity(activity)
+}
+
+func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
+	proposals, err := s.canVoteRepo.GetByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for _, p := range proposals {
+		result = append(result, p.ProposalID)
+	}
+
+	return result, nil
 }

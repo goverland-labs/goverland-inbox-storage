@@ -33,10 +33,11 @@ type Application struct {
 	cfg     config.App
 	db      *gorm.DB
 
-	us        *user.Service
-	sub       *subscription.Service
-	settings  *settings.Service
-	ensClient proto.EnsClient
+	us         *user.Service
+	sub        *subscription.Service
+	settings   *settings.Service
+	ensClient  proto.EnsClient
+	coreClient *coresdk.Client
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -66,6 +67,7 @@ func (a *Application) bootstrap() error {
 	initializers := []func() error{
 		a.initDB,
 		a.initEnsResolver,
+		a.initCoreClient,
 		// Init Dependencies
 		a.initServices,
 
@@ -169,10 +171,15 @@ func (a *Application) initUsers() {
 	repo := user.NewRepo(a.db)
 	sessionRepo := user.NewSessionRepo(a.db)
 	authNonceRepo := user.NewAuthNonceRepo(a.db)
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, a.ensClient)
+	canVoteRepo := user.NewCanVoteRepo(a.db)
+
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteRepo, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
+
+	canVoteWorker := user.NewCanVoteWorker(canVoteRepo, repo, a.coreClient)
+	a.manager.AddWorker(process.NewCallbackWorker("can_vote", canVoteWorker.Start))
 }
 
 func (a *Application) initPrometheusWorker() error {
@@ -193,14 +200,13 @@ func (a *Application) initSubscription() error {
 	repo := subscription.NewRepo(a.db)
 	globalRepo := subscription.NewGlobalRepo(a.db)
 	cache := subscription.NewCache()
-	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
 
 	feedConn, err := grpc.Dial(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("create connection with storage server: %v", err)
 	}
 	fc := inboxapi.NewFeedClient(feedConn)
-	service, err := subscription.NewService(repo, globalRepo, cache, a.cfg.Core.SubscriberID, cs, fc)
+	service, err := subscription.NewService(repo, globalRepo, cache, a.cfg.Core.SubscriberID, a.coreClient, fc)
 	if err != nil {
 		return fmt.Errorf("subscription service: %w", err)
 	}
@@ -237,4 +243,11 @@ func (a *Application) registerShutdown() {
 	}(a.manager)
 
 	a.manager.AwaitAll()
+}
+
+func (a *Application) initCoreClient() error {
+	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
+	a.coreClient = cs
+
+	return nil
 }
