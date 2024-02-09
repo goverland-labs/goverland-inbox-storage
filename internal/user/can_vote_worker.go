@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	syncCanVoteInterval = 15 * time.Minute
+	syncCanVoteInterval = 30 * time.Minute
 	topProposalLimit    = 50
 	userCanVoteLimit    = 10
 )
@@ -63,6 +63,8 @@ func (w *CanVoteWorker) process(ctx context.Context) error {
 		return fmt.Errorf("get all regular users: %w", err)
 	}
 
+	totalValidateRequests := 0
+
 	for _, rUser := range users {
 		usersCanVote, err := w.userCanVoteRepo.GetByUser(rUser.ID)
 		if err != nil {
@@ -93,6 +95,7 @@ func (w *CanVoteWorker) process(ctx context.Context) error {
 				continue
 			}
 
+			totalValidateRequests++
 			validateResult, err := w.coreClient.ValidateVote(ctx, cProposal.ID, goverlandcorewebsdk.ValidateVoteRequest{
 				Voter: *rUser.Address,
 			})
@@ -122,6 +125,10 @@ func (w *CanVoteWorker) process(ctx context.Context) error {
 			Int("votes", currentActualVotes).
 			Msg("user votes updated")
 	}
+
+	log.Info().
+		Int("total_validate_requests", totalValidateRequests).
+		Msg("voting update process finished")
 
 	return nil
 }
