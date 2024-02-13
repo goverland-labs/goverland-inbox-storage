@@ -89,3 +89,14 @@ type AuthNonce struct {
 func (a *AuthNonce) TableName() string {
 	return "auth_nonces"
 }
+
+type CanVote struct {
+	UserID     uuid.UUID `gorm:"primary_key"`
+	ProposalID string    `gorm:"primary_key"`
+
+	CreatedAt time.Time `gorm:"index"`
+}
+
+func (u *CanVote) TableName() string {
+	return "user_can_vote"
+}

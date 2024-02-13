@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Added me can vote feature implementation
+
 ## [0.0.16] - 2024-02-05
 
 ### Added

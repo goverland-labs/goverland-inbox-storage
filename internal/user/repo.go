@@ -161,3 +161,15 @@ func (r *Repo) GetByFilters(filters []Filter) ([]Activity, error) {
 
 	return list, nil
 }
+
+func (r *Repo) GetAllRegularUsers() ([]User, error) {
+	var list []User
+	req := r.db.
+		Where("role = ?", RegularRole).
+		Find(&list)
+	if err := req.Error; err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}

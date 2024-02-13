@@ -22,17 +22,19 @@ type Service struct {
 	sessionRepo   *SessionRepo
 	authNonceRepo *AuthNonceRepo
 	activityCache *cache
+	canVoteRepo   *CanVoteRepo
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, ensClient proto.EnsClient) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteRepo *CanVoteRepo, ensClient proto.EnsClient) *Service {
 	return &Service{
 		repo:          repo,
 		sessionRepo:   sessionRepo,
-		ensClient:     ensClient,
 		authNonceRepo: authNonceRepo,
 		activityCache: newCache(),
+		canVoteRepo:   canVoteRepo,
+		ensClient:     ensClient,
 	}
 }
 
@@ -218,4 +220,18 @@ func (s *Service) resolveENSAddress(address string) *string {
 	}
 
 	return &ensName
+}
+
+func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
+	proposals, err := s.canVoteRepo.GetByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for _, p := range proposals {
+		result = append(result, p.ProposalID)
+	}
+
+	return result, nil
 }

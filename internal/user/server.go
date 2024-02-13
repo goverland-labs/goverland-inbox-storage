@@ -237,6 +237,24 @@ func (s *Server) TrackActivity(_ context.Context, req *proto.TrackActivityReques
 	return &emptypb.Empty{}, nil
 }
 
+func (s *Server) GetUserCanVoteProposals(ctx context.Context, req *proto.GetUserCanVoteProposalsRequest) (*proto.GetUserCanVoteProposalsResponse, error) {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	list, err := s.sp.GetUserCanVoteProposals(userID)
+	if err != nil {
+		log.Error().Err(err).Msgf("get user can vote proposals: %s", req.GetUserId())
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &proto.GetUserCanVoteProposalsResponse{
+		ProposalIds: list,
+	}, nil
+}
+
 func (s *Server) convertProfileInfoToAPI(profileInfo ProfileInfo) *proto.UserProfile {
 	var lastSessions []*proto.Session
 	for i := range profileInfo.LastSessions {
