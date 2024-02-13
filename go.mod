@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/goverland-labs/core-web-sdk v0.0.20
 	github.com/goverland-labs/helpers-ens-resolver v0.0.2
-	github.com/goverland-labs/inbox-api v0.0.18-0.20240204203942-9f0b482a4154
+	github.com/goverland-labs/inbox-api v0.0.19
 	github.com/goverland-labs/platform-events v0.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0

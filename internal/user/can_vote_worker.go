@@ -72,6 +72,11 @@ func (w *CanVoteWorker) process(ctx context.Context) error {
 			continue
 		}
 
+		if rUser.Address == nil {
+			log.Warn().Str("user", rUser.ID.String()).Msg("user has no address")
+			continue
+		}
+
 		actualUserCanVote := 0
 		for _, userCanVote := range usersCanVote {
 			if _, ok := proposalIDs[userCanVote.ProposalID]; ok {
@@ -88,11 +93,6 @@ func (w *CanVoteWorker) process(ctx context.Context) error {
 		for _, cProposal := range topProposals.Items {
 			if currentActualVotes >= userCanVoteLimit {
 				break
-			}
-
-			if rUser.Address == nil {
-				log.Warn().Str("user", rUser.ID.String()).Msg("user has no address")
-				continue
 			}
 
 			totalValidateRequests++
