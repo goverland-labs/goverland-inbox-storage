@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Added migration for user session: set last activity at not null 
+
 ## [0.0.17] - 2024-02-05
 
 ### Added
