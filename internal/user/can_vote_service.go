@@ -38,11 +38,6 @@ func (s *CanVoteService) CalculateForUserID(ctx context.Context, userID uuid.UUI
 		return fmt.Errorf("get top proposals: %w", err)
 	}
 
-	proposalIDs := make(map[string]struct{}, len(topProposals.Items))
-	for _, cProposal := range topProposals.Items {
-		proposalIDs[cProposal.ID] = struct{}{}
-	}
-
 	rUser, err := s.repo.GetByID(userID)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)
