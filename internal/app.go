@@ -173,12 +173,14 @@ func (a *Application) initUsers() {
 	authNonceRepo := user.NewAuthNonceRepo(a.db)
 	canVoteRepo := user.NewCanVoteRepo(a.db)
 
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteRepo, a.ensClient)
+	canVoteService := user.NewCanVoteService(canVoteRepo, repo, a.coreClient)
+
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
 
-	canVoteWorker := user.NewCanVoteWorker(canVoteRepo, repo, a.coreClient)
+	canVoteWorker := user.NewCanVoteWorker(canVoteService)
 	a.manager.AddWorker(process.NewCallbackWorker("can_vote", canVoteWorker.Start))
 }
 
