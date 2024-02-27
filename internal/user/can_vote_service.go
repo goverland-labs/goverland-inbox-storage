@@ -10,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const usersBatchLimit = 1000
+
 type CanVoteService struct {
 	userCanVoteRepo *CanVoteRepo
 	repo            *Repo
@@ -57,13 +59,22 @@ func (s *CanVoteService) CalculateForAll(ctx context.Context) error {
 		return fmt.Errorf("get top proposals: %w", err)
 	}
 
-	users, err := s.repo.GetAllRegularUsers()
-	if err != nil {
-		return fmt.Errorf("get all regular users: %w", err)
-	}
+	offset := 0
+	for {
+		users, err := s.repo.GetAllRegularUsers(usersBatchLimit, offset)
+		if err != nil {
+			return fmt.Errorf("get all regular users: %w", err)
+		}
 
-	for _, rUser := range users {
-		s.calculateForUser(ctx, topProposals, rUser)
+		if len(users) == 0 {
+			break
+		}
+
+		for _, rUser := range users {
+			s.calculateForUser(ctx, topProposals, rUser)
+		}
+
+		offset += usersBatchLimit
 	}
 
 	return nil
@@ -71,11 +82,6 @@ func (s *CanVoteService) CalculateForAll(ctx context.Context) error {
 
 // TODO resolve race between worker and manual call, otherwise we can calculate user twice
 func (s *CanVoteService) calculateForUser(ctx context.Context, topProposals *coreproposal.List, rUser User) {
-	if rUser.Address == nil {
-		log.Warn().Str("user", rUser.ID.String()).Msg("user has no address")
-		return
-	}
-
 	proposalIDs := make(map[string]struct{}, len(topProposals.Items))
 	for _, cProposal := range topProposals.Items {
 		proposalIDs[cProposal.ID] = struct{}{}

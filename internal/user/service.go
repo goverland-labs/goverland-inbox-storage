@@ -170,7 +170,7 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 		return nil, fmt.Errorf("create session: %w", err)
 	}
 
-	if user.Role == RegularRole {
+	if user.IsRegular() {
 		// TODO maybe create queue for calculating
 		go func() {
 			err = s.canVoteService.CalculateForUserID(context.Background(), user.ID)
