@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.19] - 2024-02-28
+
 ### Added
 - Added can vote calculation on user sign in
 
