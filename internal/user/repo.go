@@ -162,10 +162,13 @@ func (r *Repo) GetByFilters(filters []Filter) ([]Activity, error) {
 	return list, nil
 }
 
-func (r *Repo) GetAllRegularUsers() ([]User, error) {
+func (r *Repo) GetAllRegularUsers(limit, offset int) ([]User, error) {
 	var list []User
 	req := r.db.
 		Where("role = ?", RegularRole).
+		Order("created_at asc").
+		Limit(limit).
+		Offset(offset).
 		Find(&list)
 	if err := req.Error; err != nil {
 		return nil, err

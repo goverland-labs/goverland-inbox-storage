@@ -34,6 +34,14 @@ type User struct {
 	DeviceUUID string // only for guest support, remove in future
 }
 
+func (u User) IsGuest() bool {
+	return u.Role == GuestRole
+}
+
+func (u User) IsRegular() bool {
+	return u.Role == RegularRole
+}
+
 type Session struct {
 	ID     uuid.UUID `gorm:"primary_key"`
 	UserID uuid.UUID `gorm:"index"`

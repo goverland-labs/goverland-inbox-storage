@@ -18,23 +18,23 @@ const (
 )
 
 type Service struct {
-	repo          *Repo
-	sessionRepo   *SessionRepo
-	authNonceRepo *AuthNonceRepo
-	activityCache *cache
-	canVoteRepo   *CanVoteRepo
+	repo           *Repo
+	sessionRepo    *SessionRepo
+	authNonceRepo  *AuthNonceRepo
+	activityCache  *cache
+	canVoteService *CanVoteService
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteRepo *CanVoteRepo, ensClient proto.EnsClient) *Service {
+func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteService *CanVoteService, ensClient proto.EnsClient) *Service {
 	return &Service{
-		repo:          repo,
-		sessionRepo:   sessionRepo,
-		authNonceRepo: authNonceRepo,
-		activityCache: newCache(),
-		canVoteRepo:   canVoteRepo,
-		ensClient:     ensClient,
+		repo:           repo,
+		sessionRepo:    sessionRepo,
+		authNonceRepo:  authNonceRepo,
+		activityCache:  newCache(),
+		canVoteService: canVoteService,
+		ensClient:      ensClient,
 	}
 }
 
@@ -170,6 +170,16 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 		return nil, fmt.Errorf("create session: %w", err)
 	}
 
+	if user.IsRegular() {
+		// TODO maybe create queue for calculating
+		go func() {
+			err = s.canVoteService.CalculateForUserID(context.Background(), user.ID)
+			if err != nil {
+				log.Error().Err(err).Str("user", user.ID.String()).Msg("cannot calculate user can vote")
+			}
+		}()
+	}
+
 	return &session, nil
 }
 
@@ -223,7 +233,7 @@ func (s *Service) resolveENSAddress(address string) *string {
 }
 
 func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
-	proposals, err := s.canVoteRepo.GetByUser(userID)
+	proposals, err := s.canVoteService.GetByUser(userID)
 	if err != nil {
 		return nil, err
 	}
