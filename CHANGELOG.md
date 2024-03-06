@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.20] - 2024-03-06
+
+### Added
+- Nats metrics
+
 ## [0.0.19] - 2024-02-28
 
 ### Added
