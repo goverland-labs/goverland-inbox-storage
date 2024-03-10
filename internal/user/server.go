@@ -275,12 +275,23 @@ func (s *Server) AllowSendingPush(_ context.Context, req *proto.AllowSendingPush
 
 	allow, err := s.sp.AllowSendingPush(userID)
 	if err != nil {
-		log.Error().Err(err).Msgf("allowSendingPush caclulating")
+		log.Error().Err(err).Msg("allowSendingPush calculating")
 
 		return nil, status.Error(codes.Internal, "internal err")
 	}
 
 	return &proto.AllowSendingPushResponse{Allow: allow}, nil
+}
+
+func (s *Server) GetAvailableDaoByWallet(_ context.Context, req *proto.GetAvailableDaoByWalletRequest) (*proto.GetAvailableDaoByWalletResponse, error) {
+	userID, err := uuid.Parse(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user id has wrong format")
+	}
+
+	_, _ = s.sp.GetAvailableDaoByUser(userID)
+
+	return nil, status.Error(codes.Unimplemented, "implement me")
 }
 
 func (s *Server) convertSessionToAPI(session *Session) *proto.Session {

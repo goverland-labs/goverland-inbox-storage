@@ -11,6 +11,8 @@ import (
 	"github.com/goverland-labs/helpers-ens-resolver/proto"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
+
+	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
 )
 
 const (
@@ -23,17 +25,26 @@ type Service struct {
 	authNonceRepo  *AuthNonceRepo
 	activityCache  *cache
 	canVoteService *CanVoteService
+	zerionAPI      *zerion.Client
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteService *CanVoteService, ensClient proto.EnsClient) *Service {
+func NewService(
+	repo *Repo,
+	sessionRepo *SessionRepo,
+	authNonceRepo *AuthNonceRepo,
+	canVoteService *CanVoteService,
+	zerionAPI *zerion.Client,
+	ensClient proto.EnsClient,
+) *Service {
 	return &Service{
 		repo:           repo,
 		sessionRepo:    sessionRepo,
 		authNonceRepo:  authNonceRepo,
 		activityCache:  newCache(),
 		canVoteService: canVoteService,
+		zerionAPI:      zerionAPI,
 		ensClient:      ensClient,
 	}
 }
@@ -244,4 +255,28 @@ func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) (any, error) {
+	user, err := s.GetByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+
+	if !user.HasAddress() {
+		return nil, errors.New("user has no address")
+	}
+
+	positions, err := s.zerionAPI.GetWalletPositions(*user.Address)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet positions by API: %w", err)
+	}
+
+	_ = positions
+
+	// todo: get subscriptions by provider
+	// todo: compare with mapping dao
+	// todo: return list of dao filtered by subscriptions
+
+	return nil, nil
 }

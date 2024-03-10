@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,6 +20,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/metrics"
 	"github.com/goverland-labs/inbox-storage/internal/proposal"
 	"github.com/goverland-labs/inbox-storage/internal/settings"
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
@@ -26,6 +28,7 @@ import (
 	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
 	"github.com/goverland-labs/inbox-storage/pkg/health"
 	"github.com/goverland-labs/inbox-storage/pkg/prometheus"
+	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
 )
 
 type Application struct {
@@ -40,6 +43,7 @@ type Application struct {
 	settings        *settings.Service
 	ensClient       proto.EnsClient
 	coreClient      *coresdk.Client
+	zerionAPI       *zerion.Client
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -70,6 +74,7 @@ func (a *Application) bootstrap() error {
 		a.initDB,
 		a.initEnsResolver,
 		a.initCoreClient,
+		a.initZerionAPI,
 		// Init Dependencies
 		a.initServices,
 
@@ -183,7 +188,7 @@ func (a *Application) initUsers() {
 
 	canVoteService := user.NewCanVoteService(canVoteRepo, repo, a.coreClient)
 
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.ensClient)
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.zerionAPI, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
@@ -259,6 +264,15 @@ func (a *Application) registerShutdown() {
 func (a *Application) initCoreClient() error {
 	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
 	a.coreClient = cs
+
+	return nil
+}
+
+func (a *Application) initZerionAPI() error {
+	zc := zerion.NewClient(a.cfg.Zerion.BaseURL, a.cfg.Zerion.Key, &http.Client{
+		Transport: metrics.NewRequestWatcher("zerion"),
+	})
+	a.zerionAPI = zc
 
 	return nil
 }
