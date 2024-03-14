@@ -289,9 +289,14 @@ func (s *Server) GetAvailableDaoByWallet(_ context.Context, req *proto.GetAvaila
 		return nil, status.Error(codes.InvalidArgument, "user id has wrong format")
 	}
 
-	_, _ = s.sp.GetAvailableDaoByUser(userID)
+	ids, err := s.sp.GetAvailableDaoByUser(userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
-	return nil, status.Error(codes.Unimplemented, "implement me")
+	return &proto.GetAvailableDaoByWalletResponse{
+		DaoUuids: ids,
+	}, nil
 }
 
 func (s *Server) convertSessionToAPI(session *Session) *proto.Session {

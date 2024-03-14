@@ -25,10 +25,11 @@ import (
 	"github.com/goverland-labs/inbox-storage/internal/settings"
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
 	"github.com/goverland-labs/inbox-storage/internal/user"
+	"github.com/goverland-labs/inbox-storage/internal/zerion"
 	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
 	"github.com/goverland-labs/inbox-storage/pkg/health"
 	"github.com/goverland-labs/inbox-storage/pkg/prometheus"
-	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
+	zerionsdk "github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
 )
 
 type Application struct {
@@ -43,7 +44,8 @@ type Application struct {
 	settings        *settings.Service
 	ensClient       proto.EnsClient
 	coreClient      *coresdk.Client
-	zerionAPI       *zerion.Client
+	zerionAPI       *zerionsdk.Client
+	zerionService   *zerion.Service
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -146,7 +148,6 @@ func (a *Application) initServices() error {
 
 	_ = pb
 
-	a.initUsers()
 	a.initProposals()
 	if err = a.initSubscription(); err != nil {
 		return err
@@ -154,6 +155,7 @@ func (a *Application) initServices() error {
 	if err = a.initPushes(); err != nil {
 		return err
 	}
+	a.initUsers()
 
 	return nil
 }
@@ -188,7 +190,7 @@ func (a *Application) initUsers() {
 
 	canVoteService := user.NewCanVoteService(canVoteRepo, repo, a.coreClient)
 
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.zerionAPI, a.ensClient)
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.zerionService, a.sub, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
@@ -269,10 +271,15 @@ func (a *Application) initCoreClient() error {
 }
 
 func (a *Application) initZerionAPI() error {
-	zc := zerion.NewClient(a.cfg.Zerion.BaseURL, a.cfg.Zerion.Key, &http.Client{
+	zc := zerionsdk.NewClient(a.cfg.Zerion.BaseURL, a.cfg.Zerion.Key, &http.Client{
 		Transport: metrics.NewRequestWatcher("zerion"),
 	})
 	a.zerionAPI = zc
+
+	var err error
+	if a.zerionService, err = zerion.NewService(zc, a.cfg.Zerion.MappingPath); err != nil {
+		return fmt.Errorf("init zerion service: %w", err)
+	}
 
 	return nil
 }

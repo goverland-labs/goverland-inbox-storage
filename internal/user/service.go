@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -12,12 +13,20 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
+	"github.com/goverland-labs/inbox-storage/internal/subscription"
 )
 
 const (
 	ensTimeout = 500 * time.Millisecond
 )
+
+type SubscriptionCollector interface {
+	GetByFilters(filters []subscription.Filter) (subscription.UserSubscriptionList, error)
+}
+
+type WalletPositioner interface {
+	GetWalletPositions(address string) ([]uuid.UUID, error)
+}
 
 type Service struct {
 	repo           *Repo
@@ -25,7 +34,8 @@ type Service struct {
 	authNonceRepo  *AuthNonceRepo
 	activityCache  *cache
 	canVoteService *CanVoteService
-	zerionAPI      *zerion.Client
+	wp             WalletPositioner
+	sc             SubscriptionCollector
 
 	ensClient proto.EnsClient
 }
@@ -35,7 +45,8 @@ func NewService(
 	sessionRepo *SessionRepo,
 	authNonceRepo *AuthNonceRepo,
 	canVoteService *CanVoteService,
-	zerionAPI *zerion.Client,
+	wp WalletPositioner,
+	sc SubscriptionCollector,
 	ensClient proto.EnsClient,
 ) *Service {
 	return &Service{
@@ -44,7 +55,8 @@ func NewService(
 		authNonceRepo:  authNonceRepo,
 		activityCache:  newCache(),
 		canVoteService: canVoteService,
-		zerionAPI:      zerionAPI,
+		wp:             wp,
+		sc:             sc,
 		ensClient:      ensClient,
 	}
 }
@@ -257,7 +269,7 @@ func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
 	return result, nil
 }
 
-func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) (any, error) {
+func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) ([]string, error) {
 	user, err := s.GetByID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("get user by id: %w", err)
@@ -267,16 +279,28 @@ func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) (any, error) {
 		return nil, errors.New("user has no address")
 	}
 
-	positions, err := s.zerionAPI.GetWalletPositions(*user.Address)
+	subscriptions, err := s.sc.GetByFilters([]subscription.Filter{
+		subscription.UserIDFilter{ID: user.ID.String()},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("get wallet positions by API: %w", err)
+		return nil, fmt.Errorf("get user subscriptions: %w", err)
+	}
+	subList := make([]uuid.UUID, len(subscriptions.Subscriptions))
+	for i := range subscriptions.Subscriptions {
+		subList[i] = subscriptions.Subscriptions[i].DaoID
 	}
 
-	_ = positions
+	ids, err := s.wp.GetWalletPositions(*user.Address)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet positions: %w", err)
+	}
 
-	// todo: get subscriptions by provider
-	// todo: compare with mapping dao
-	// todo: return list of dao filtered by subscriptions
+	unfollowed := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if !slices.Contains(subList, id) {
+			unfollowed = append(unfollowed, id.String())
+		}
+	}
 
-	return nil, nil
+	return unfollowed, nil
 }
