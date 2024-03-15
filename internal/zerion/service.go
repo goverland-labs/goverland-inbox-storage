@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -55,7 +56,7 @@ func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
 			}
 
 			for _, details := range fi.Implementations {
-				if details.Address != info.Address {
+				if !strings.EqualFold(details.Address, info.Address) {
 					continue
 				}
 

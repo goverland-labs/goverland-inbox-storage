@@ -17,7 +17,6 @@ RUN go env -w GOPRIVATE=github.com/goverland-labs/*
 
 # Download dependencies
 COPY go.mod go.sum ./
-COPY resources/data ./
 RUN go mod download && go mod verify
 
 # Copy an application's source
@@ -36,5 +35,6 @@ RUN apk update && \
 WORKDIR /opt
 
 COPY --from=builder /opt/bin/ ./
+COPY resources/data ./
 
 CMD ["./application"]
