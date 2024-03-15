@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Added featured proposals implementation
+
 ## [0.0.20] - 2024-03-06
 
 ### Added

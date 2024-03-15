@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/proposal"
 	"github.com/goverland-labs/inbox-storage/internal/settings"
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
 	"github.com/goverland-labs/inbox-storage/internal/user"
@@ -33,11 +34,12 @@ type Application struct {
 	cfg     config.App
 	db      *gorm.DB
 
-	us         *user.Service
-	sub        *subscription.Service
-	settings   *settings.Service
-	ensClient  proto.EnsClient
-	coreClient *coresdk.Client
+	proposalService *proposal.Service
+	us              *user.Service
+	sub             *subscription.Service
+	settings        *settings.Service
+	ensClient       proto.EnsClient
+	coreClient      *coresdk.Client
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -140,6 +142,7 @@ func (a *Application) initServices() error {
 	_ = pb
 
 	a.initUsers()
+	a.initProposals()
 	if err = a.initSubscription(); err != nil {
 		return err
 	}
@@ -165,6 +168,11 @@ func (a *Application) initPushes() error {
 	a.settings = service
 
 	return nil
+}
+
+func (a *Application) initProposals() {
+	repo := proposal.NewFeaturedRepo(a.db)
+	a.proposalService = proposal.NewService(repo)
 }
 
 func (a *Application) initUsers() {
@@ -230,6 +238,7 @@ func (a *Application) initAPI() error {
 
 	inboxapi.RegisterSubscriptionServer(srv, subscription.NewServer(a.sub))
 	inboxapi.RegisterUserServer(srv, user.NewServer(a.us))
+	inboxapi.RegisterProposalServer(srv, proposal.NewServer(a.proposalService))
 	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
