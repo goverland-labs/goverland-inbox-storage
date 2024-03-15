@@ -9,7 +9,7 @@ require (
 	github.com/goverland-labs/core-web-sdk v0.0.20
 	github.com/goverland-labs/goverland-platform-events v0.2.1
 	github.com/goverland-labs/helpers-ens-resolver v0.0.2
-	github.com/goverland-labs/inbox-api v0.0.19
+	github.com/goverland-labs/inbox-api v0.0.22
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/hashicorp/vault/api v1.9.2
