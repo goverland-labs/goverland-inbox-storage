@@ -291,6 +291,10 @@ func (s *Server) GetAvailableDaoByWallet(_ context.Context, req *proto.GetAvaila
 
 	ids, err := s.sp.GetAvailableDaoByUser(userID)
 	if err != nil {
+		if errors.Is(err, ErrUserHasNoAddress) {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
+
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

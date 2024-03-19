@@ -16,6 +16,10 @@ import (
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
 )
 
+var (
+	ErrUserHasNoAddress = errors.New("user has no address")
+)
+
 const (
 	ensTimeout = 500 * time.Millisecond
 )
@@ -276,7 +280,7 @@ func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) ([]string, error) {
 	}
 
 	if !user.HasAddress() {
-		return nil, errors.New("user has no address")
+		return nil, ErrUserHasNoAddress
 	}
 
 	subscriptions, err := s.sc.GetByFilters([]subscription.Filter{
