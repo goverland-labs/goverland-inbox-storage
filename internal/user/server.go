@@ -53,6 +53,7 @@ func (s *Server) CreateSession(_ context.Context, req *proto.CreateSessionReques
 		GuestSessionID: guestSessionID,
 		DeviceUUID:     req.GetDeviceUuid(),
 		DeviceName:     req.DeviceName,
+		AppVersion:     req.AppVersion,
 		Role:           role,
 	}
 

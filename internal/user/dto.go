@@ -5,6 +5,7 @@ type CreateSessionRequest struct {
 	GuestSessionID *string `json:"guest_session_id"`
 	DeviceUUID     string  `json:"device_uuid"`
 	DeviceName     string  `json:"device_name"`
+	AppVersion     string  `json:"app_version"`
 	Role           Role    `json:"role"`
 }
 

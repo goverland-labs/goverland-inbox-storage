@@ -56,6 +56,7 @@ type Session struct {
 
 	DeviceUUID string
 	DeviceName string
+	AppVersion string
 
 	LastActivityAt time.Time
 }

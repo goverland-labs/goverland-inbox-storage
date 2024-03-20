@@ -193,6 +193,7 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 		UserID:         user.ID,
 		DeviceUUID:     request.DeviceUUID,
 		DeviceName:     request.DeviceName,
+		AppVersion:     request.AppVersion,
 		LastActivityAt: time.Now(),
 	}
 

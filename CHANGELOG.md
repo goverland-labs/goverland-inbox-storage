@@ -25,6 +25,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.0.21] - 2024-03-15
 
 ### Added
+- Achievements schema
+
+### Added
 - Added featured proposals implementation
 
 ## [0.0.20] - 2024-03-06
