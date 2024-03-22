@@ -8,6 +8,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Integrate with ZerionAPI for dao recommendations
+
+## [0.0.21] - 2024-03-15
+
+### Added
 - Added featured proposals implementation
 
 ## [0.0.20] - 2024-03-06

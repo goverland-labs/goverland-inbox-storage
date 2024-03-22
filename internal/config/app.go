@@ -9,4 +9,5 @@ type App struct {
 	API        API
 	Core       Core
 	Vault      Vault
+	Zerion     Zerion
 }

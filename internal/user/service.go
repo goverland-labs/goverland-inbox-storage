@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -11,11 +12,25 @@ import (
 	"github.com/goverland-labs/helpers-ens-resolver/proto"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
+
+	"github.com/goverland-labs/inbox-storage/internal/subscription"
+)
+
+var (
+	ErrUserHasNoAddress = errors.New("user has no address")
 )
 
 const (
 	ensTimeout = 500 * time.Millisecond
 )
+
+type SubscriptionCollector interface {
+	GetByFilters(filters []subscription.Filter) (subscription.UserSubscriptionList, error)
+}
+
+type WalletPositioner interface {
+	GetWalletPositions(address string) ([]uuid.UUID, error)
+}
 
 type Service struct {
 	repo           *Repo
@@ -23,17 +38,29 @@ type Service struct {
 	authNonceRepo  *AuthNonceRepo
 	activityCache  *cache
 	canVoteService *CanVoteService
+	wp             WalletPositioner
+	sc             SubscriptionCollector
 
 	ensClient proto.EnsClient
 }
 
-func NewService(repo *Repo, sessionRepo *SessionRepo, authNonceRepo *AuthNonceRepo, canVoteService *CanVoteService, ensClient proto.EnsClient) *Service {
+func NewService(
+	repo *Repo,
+	sessionRepo *SessionRepo,
+	authNonceRepo *AuthNonceRepo,
+	canVoteService *CanVoteService,
+	wp WalletPositioner,
+	sc SubscriptionCollector,
+	ensClient proto.EnsClient,
+) *Service {
 	return &Service{
 		repo:           repo,
 		sessionRepo:    sessionRepo,
 		authNonceRepo:  authNonceRepo,
 		activityCache:  newCache(),
 		canVoteService: canVoteService,
+		wp:             wp,
+		sc:             sc,
 		ensClient:      ensClient,
 	}
 }
@@ -244,4 +271,40 @@ func (s *Service) GetUserCanVoteProposals(userID uuid.UUID) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+func (s *Service) GetAvailableDaoByUser(userID uuid.UUID) ([]string, error) {
+	user, err := s.GetByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+
+	if !user.HasAddress() {
+		return nil, ErrUserHasNoAddress
+	}
+
+	subscriptions, err := s.sc.GetByFilters([]subscription.Filter{
+		subscription.UserIDFilter{ID: user.ID.String()},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get user subscriptions: %w", err)
+	}
+	subList := make([]uuid.UUID, len(subscriptions.Subscriptions))
+	for i := range subscriptions.Subscriptions {
+		subList[i] = subscriptions.Subscriptions[i].DaoID
+	}
+
+	ids, err := s.wp.GetWalletPositions(*user.Address)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet positions: %w", err)
+	}
+
+	unfollowed := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if !slices.Contains(subList, id) {
+			unfollowed = append(unfollowed, id.String())
+		}
+	}
+
+	return unfollowed, nil
 }

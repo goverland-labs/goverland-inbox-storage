@@ -42,6 +42,10 @@ func (u User) IsRegular() bool {
 	return u.Role == RegularRole
 }
 
+func (u User) HasAddress() bool {
+	return u.Address != nil && *u.Address != ""
+}
+
 type Session struct {
 	ID     uuid.UUID `gorm:"primary_key"`
 	UserID uuid.UUID `gorm:"index"`

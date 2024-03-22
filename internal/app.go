@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,13 +20,16 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/metrics"
 	"github.com/goverland-labs/inbox-storage/internal/proposal"
 	"github.com/goverland-labs/inbox-storage/internal/settings"
 	"github.com/goverland-labs/inbox-storage/internal/subscription"
 	"github.com/goverland-labs/inbox-storage/internal/user"
+	"github.com/goverland-labs/inbox-storage/internal/zerion"
 	"github.com/goverland-labs/inbox-storage/pkg/grpcsrv"
 	"github.com/goverland-labs/inbox-storage/pkg/health"
 	"github.com/goverland-labs/inbox-storage/pkg/prometheus"
+	zerionsdk "github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
 )
 
 type Application struct {
@@ -40,6 +44,8 @@ type Application struct {
 	settings        *settings.Service
 	ensClient       proto.EnsClient
 	coreClient      *coresdk.Client
+	zerionAPI       *zerionsdk.Client
+	zerionService   *zerion.Service
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -70,6 +76,7 @@ func (a *Application) bootstrap() error {
 		a.initDB,
 		a.initEnsResolver,
 		a.initCoreClient,
+		a.initZerionAPI,
 		// Init Dependencies
 		a.initServices,
 
@@ -141,7 +148,6 @@ func (a *Application) initServices() error {
 
 	_ = pb
 
-	a.initUsers()
 	a.initProposals()
 	if err = a.initSubscription(); err != nil {
 		return err
@@ -149,6 +155,7 @@ func (a *Application) initServices() error {
 	if err = a.initPushes(); err != nil {
 		return err
 	}
+	a.initUsers()
 
 	return nil
 }
@@ -183,7 +190,7 @@ func (a *Application) initUsers() {
 
 	canVoteService := user.NewCanVoteService(canVoteRepo, repo, a.coreClient)
 
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.ensClient)
+	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.zerionService, a.sub, a.ensClient)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
@@ -259,6 +266,20 @@ func (a *Application) registerShutdown() {
 func (a *Application) initCoreClient() error {
 	cs := coresdk.NewClient(a.cfg.Core.CoreURL)
 	a.coreClient = cs
+
+	return nil
+}
+
+func (a *Application) initZerionAPI() error {
+	zc := zerionsdk.NewClient(a.cfg.Zerion.BaseURL, a.cfg.Zerion.Key, &http.Client{
+		Transport: metrics.NewRequestWatcher("zerion"),
+	})
+	a.zerionAPI = zc
+
+	var err error
+	if a.zerionService, err = zerion.NewService(zc, a.cfg.Zerion.MappingPath); err != nil {
+		return fmt.Errorf("init zerion service: %w", err)
+	}
 
 	return nil
 }
