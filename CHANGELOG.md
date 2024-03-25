@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.23] - 2024-03-25
+
+### Added
+- Add user by address
+
 ## [0.0.22] - 2024-03-22
 
 ### Added

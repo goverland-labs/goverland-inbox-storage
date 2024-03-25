@@ -65,8 +65,8 @@ github.com/goverland-labs/goverland-platform-events v0.2.1 h1:gqy5VTMxPkd46ct1NB
 github.com/goverland-labs/goverland-platform-events v0.2.1/go.mod h1:0/131HTR3cue1cDBVIoJ/iwgA+8f5MDQC8mUiqnouzE=
 github.com/goverland-labs/helpers-ens-resolver v0.0.2 h1:sf/1rHSJm/KB7If3IVhwvZwUM1jQ3pzd/GV8B8Fmg6Y=
 github.com/goverland-labs/helpers-ens-resolver v0.0.2/go.mod h1:0ijKE8IJfhFLQOUONBTX02DaSkV5/fPZnBBGqPDrAR0=
-github.com/goverland-labs/inbox-api v0.0.22 h1:dmo1WPpPv+TIMxdy+PxDyJDLr0Z5oNE5bn6NBZ8r1CQ=
-github.com/goverland-labs/inbox-api v0.0.22/go.mod h1:gFnTNa5515hTrrGZCQltCHlaaQdShCgL7giy2e+HIRo=
+github.com/goverland-labs/inbox-api v0.0.24 h1:6HAhaJQdwrWlluPjReuOuBMX/m8rJJsq5evQtFJl578=
+github.com/goverland-labs/inbox-api v0.0.24/go.mod h1:gFnTNa5515hTrrGZCQltCHlaaQdShCgL7giy2e+HIRo=
 github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 h1:UH//fgunKIs4JdUbpDl1VZCDaL56wXCB/5+wF6uHfaI=
 github.com/grpc-ecosystem/go-grpc-middleware v1.4.0/go.mod h1:g5qyo/la0ALbONm6Vbp88Yd8NsDy6rZz+RcrMPxvld8=
 github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 h1:Ovs26xHkKqVztRpIrF/92BcuyuQ/YW4NSIpoGtfXNho=

@@ -73,6 +73,10 @@ func (s *Service) GetByUuid(uuid string) (*User, error) {
 	return s.repo.GetByUuid(uuid)
 }
 
+func (s *Service) GetByAddress(address string) (*User, error) {
+	return s.repo.GetByAddress(address)
+}
+
 func (s *Service) GetProfileInfo(userID uuid.UUID) (ProfileInfo, error) {
 	const countLastSessions = 10
 
