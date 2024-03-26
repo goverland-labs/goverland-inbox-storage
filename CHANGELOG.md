@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Actualize ens proto library
+
 ## [0.0.23] - 2024-03-25
 
 ### Added

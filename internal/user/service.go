@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/goverland-labs/helpers-ens-resolver/proto"
+	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
@@ -41,7 +41,7 @@ type Service struct {
 	wp             WalletPositioner
 	sc             SubscriptionCollector
 
-	ensClient proto.EnsClient
+	ensClient enspb.EnsClient
 }
 
 func NewService(
@@ -51,7 +51,7 @@ func NewService(
 	canVoteService *CanVoteService,
 	wp WalletPositioner,
 	sc SubscriptionCollector,
-	ensClient proto.EnsClient,
+	ensClient enspb.EnsClient,
 ) *Service {
 	return &Service{
 		repo:           repo,
@@ -238,7 +238,7 @@ func (s *Service) LastViewed(filters []Filter) ([]RecentlyViewed, error) {
 func (s *Service) resolveENSAddress(address string) *string {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), ensTimeout)
 	defer cancel()
-	domains, err := s.ensClient.ResolveDomains(ctxWithTimeout, &proto.ResolveDomainsRequest{
+	domains, err := s.ensClient.ResolveDomains(ctxWithTimeout, &enspb.ResolveDomainsRequest{
 		Addresses: []string{address},
 	})
 	if err != nil {

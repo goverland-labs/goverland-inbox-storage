@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	coresdk "github.com/goverland-labs/core-web-sdk"
+	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
 	"github.com/goverland-labs/goverland-platform-events/pkg/natsclient"
-	"github.com/goverland-labs/helpers-ens-resolver/proto"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/nats-io/nats.go"
@@ -42,7 +42,7 @@ type Application struct {
 	us              *user.Service
 	sub             *subscription.Service
 	settings        *settings.Service
-	ensClient       proto.EnsClient
+	ensClient       enspb.EnsClient
 	coreClient      *coresdk.Client
 	zerionAPI       *zerionsdk.Client
 	zerionService   *zerion.Service
@@ -125,7 +125,7 @@ func (a *Application) initEnsResolver() error {
 		return fmt.Errorf("create connection with ens resolver: %v", err)
 	}
 
-	a.ensClient = proto.NewEnsClient(conn)
+	a.ensClient = enspb.NewEnsClient(conn)
 
 	return nil
 }

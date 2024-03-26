@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/goverland-labs/helpers-ens-resolver/proto"
+	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
 	"github.com/rs/zerolog/log"
 )
 
@@ -14,10 +14,10 @@ const syncInterval = 5 * time.Minute
 type EnsResolverWorker struct {
 	repo *Repo
 
-	ensClient proto.EnsClient
+	ensClient enspb.EnsClient
 }
 
-func NewEnsResolverWorker(repo *Repo, ensClient proto.EnsClient) *EnsResolverWorker {
+func NewEnsResolverWorker(repo *Repo, ensClient enspb.EnsClient) *EnsResolverWorker {
 	return &EnsResolverWorker{repo: repo, ensClient: ensClient}
 }
 
@@ -58,7 +58,7 @@ func (e *EnsResolverWorker) sync(ctx context.Context) error {
 
 	log.Info().Msgf("sync ens names for %d users", len(addresses))
 
-	resp, err := e.ensClient.ResolveDomains(ctx, &proto.ResolveDomainsRequest{Addresses: addresses})
+	resp, err := e.ensClient.ResolveDomains(ctx, &enspb.ResolveDomainsRequest{Addresses: addresses})
 	if err != nil {
 		return fmt.Errorf("resolve domains: %w", err)
 	}
