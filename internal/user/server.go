@@ -117,6 +117,17 @@ func (s *Server) GetUserProfile(ctx context.Context, req *proto.GetUserProfileRe
 	return s.convertProfileInfoToAPI(profileInfo), nil
 }
 
+func (s *Server) GetUser(_ context.Context, req *proto.GetUserRequest) (*proto.UserInfo, error) {
+	user, err := s.sp.GetByAddress(req.GetAddress())
+	if err != nil {
+		log.Error().Err(err).Msgf("get user")
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return convertUserToAPI(user), nil
+}
+
 func (s *Server) GetSession(_ context.Context, req *proto.GetSessionRequest) (*proto.GetSessionResponse, error) {
 	sessionID, err := uuid.Parse(req.GetSessionId())
 	if err != nil {
