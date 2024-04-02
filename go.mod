@@ -8,10 +8,11 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/goverland-labs/core-web-sdk v0.0.20
 	github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0
-	github.com/goverland-labs/goverland-platform-events v0.2.1
-	github.com/goverland-labs/inbox-api v0.0.24
+	github.com/goverland-labs/goverland-platform-events v0.2.2-0.20240402124808-7b5206abebca
+	github.com/goverland-labs/inbox-api v0.0.25-0.20240328143203-bf5c2009717c
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/vault/api v1.9.2
 	github.com/nats-io/nats.go v1.30.2
 	github.com/prometheus/client_golang v1.18.0

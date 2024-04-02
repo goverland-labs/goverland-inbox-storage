@@ -6,6 +6,7 @@ type CreateSessionRequest struct {
 	DeviceUUID     string  `json:"device_uuid"`
 	DeviceName     string  `json:"device_name"`
 	AppVersion     string  `json:"app_version"`
+	AppPlatform    string  `json:"app_platform"`
 	Role           Role    `json:"role"`
 }
 

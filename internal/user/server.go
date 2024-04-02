@@ -54,6 +54,7 @@ func (s *Server) CreateSession(_ context.Context, req *proto.CreateSessionReques
 		DeviceUUID:     req.GetDeviceUuid(),
 		DeviceName:     req.DeviceName,
 		AppVersion:     req.AppVersion,
+		AppPlatform:    req.AppPlatform,
 		Role:           role,
 	}
 
