@@ -1,14 +1,14 @@
 module github.com/goverland-labs/inbox-storage
 
-go 1.21.1
+go 1.22
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/goverland-labs/core-web-sdk v0.0.20
+	github.com/goverland-labs/goverland-core-sdk-go v0.1.3
 	github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0
-	github.com/goverland-labs/goverland-platform-events v0.2.2-0.20240402124808-7b5206abebca
+	github.com/goverland-labs/goverland-platform-events v0.2.2-0.20240403134324-c99e2138e0bc
 	github.com/goverland-labs/inbox-api v0.0.25-0.20240328143203-bf5c2009717c
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0

@@ -58,17 +58,17 @@ type UserAchievements []UserAchievement
 type AchievementType string
 
 const (
-	AchievementTypeUnspecified  AchievementType = "unspecified"
-	AchievementTypeAppInfo      AchievementType = "app_info"
-	AchievementTypeVoteVerified AchievementType = "vote_verified"
+	AchievementTypeUnspecified AchievementType = "unspecified"
+	AchievementTypeAppInfo     AchievementType = "app_info"
+	AchievementTypeVote        AchievementType = "vote"
 )
 
 func convertAchievementType(atype pevents.AchievementType) (AchievementType, error) {
 	switch atype {
 	case pevents.AchievementTypeAppInfo:
 		return AchievementTypeAppInfo, nil
-	case pevents.AchievementTypeVoteVerified:
-		return AchievementTypeVoteVerified, nil
+	case pevents.AchievementTypeVote:
+		return AchievementTypeVote, nil
 	default:
 		return AchievementTypeUnspecified, fmt.Errorf("unknown achievement type: %v", atype)
 	}

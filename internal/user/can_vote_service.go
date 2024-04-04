@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	goverlandcorewebsdk "github.com/goverland-labs/core-web-sdk"
-	coreproposal "github.com/goverland-labs/core-web-sdk/proposal"
+	goverlandcorewebsdk "github.com/goverland-labs/goverland-core-sdk-go"
+	coreproposal "github.com/goverland-labs/goverland-core-sdk-go/proposal"
 	"github.com/rs/zerolog/log"
 )
 

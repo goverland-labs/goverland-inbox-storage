@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	coresdk "github.com/goverland-labs/core-web-sdk"
+	coresdk "github.com/goverland-labs/goverland-core-sdk-go"
 	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
 	"github.com/goverland-labs/goverland-platform-events/pkg/natsclient"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
@@ -216,6 +216,7 @@ func (a *Application) initAchievements(nc *nats.Conn) error {
 	repo := achievements.NewRepo(a.db)
 	service := achievements.NewService(a.us, repo, []achievements.AchievementHandler{
 		achievements.NewAppInfoHandler(a.sr),
+		achievements.NewVotingHandler(a.coreClient, a.us),
 	})
 
 	cs, err := achievements.NewConsumer(nc, service)
