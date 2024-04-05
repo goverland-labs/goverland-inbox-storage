@@ -43,4 +43,13 @@ alter table achievements
 alter table achievements
     alter column achievement_message set default '';
 
+insert into user_achievements (user_id, achievement_id)
+    (select u.id, a.id
+     from achievements a
+              cross join users u
+     group by u.id, a.id)
+on conflict (user_id, achievement_id) DO NOTHING;
 
+update user_achievements
+set achieved_at = now(), progress = 1
+where achievement_id = 'early-tester';
