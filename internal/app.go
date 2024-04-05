@@ -42,6 +42,7 @@ type Application struct {
 	proposalService *proposal.Service
 	sr              *user.SessionRepo
 	us              *user.Service
+	as              *achievements.Service
 	sub             *subscription.Service
 	settings        *settings.Service
 	ensClient       enspb.EnsClient
@@ -219,6 +220,8 @@ func (a *Application) initAchievements(nc *nats.Conn) error {
 		achievements.NewVotingHandler(a.coreClient, a.us),
 	})
 
+	a.as = service
+
 	cs, err := achievements.NewConsumer(nc, service)
 	if err != nil {
 		return fmt.Errorf("achievements consumer: %w", err)
@@ -277,6 +280,7 @@ func (a *Application) initAPI() error {
 	inboxapi.RegisterUserServer(srv, user.NewServer(a.us))
 	inboxapi.RegisterProposalServer(srv, proposal.NewServer(a.proposalService))
 	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
+	inboxapi.RegisterAchievementServer(srv, achievements.NewServer(a.as))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
 

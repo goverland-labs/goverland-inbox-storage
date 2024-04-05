@@ -9,7 +9,7 @@ require (
 	github.com/goverland-labs/goverland-core-sdk-go v0.1.3
 	github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0
 	github.com/goverland-labs/goverland-platform-events v0.2.2-0.20240403134324-c99e2138e0bc
-	github.com/goverland-labs/inbox-api v0.0.25-0.20240328143203-bf5c2009717c
+	github.com/goverland-labs/inbox-api v0.0.25-0.20240404111341-bc786f666829
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/hashicorp/go-version v1.6.0

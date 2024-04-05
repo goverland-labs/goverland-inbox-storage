@@ -99,7 +99,7 @@ func prepareMapping(filePath string) (map[uuid.UUID]fungibleInfo, error) {
 
 		id, err := uuid.Parse(data[1])
 		if err != nil {
-			return nil, fmt.Errorf("wrong dao uuid: %w", data[1])
+			return nil, fmt.Errorf("wrong dao uuid: %s: %w", data[1], err)
 		}
 
 		info[id] = fungibleInfo{

@@ -57,3 +57,11 @@ func (s *Service) recalc(_ context.Context, userID uuid.UUID, atype AchievementT
 
 	return nil
 }
+
+func (s *Service) GetActualByUserID(userID uuid.UUID) ([]*UserAchievement, error) {
+	return s.repo.GetActualByUserID(userID)
+}
+
+func (s *Service) MarkAsViewed(userID uuid.UUID, achievementID string) error {
+	return s.repo.MarkAsViewed(userID, achievementID)
+}

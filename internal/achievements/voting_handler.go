@@ -77,7 +77,6 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 	}
 
 	limit, offset := defaultLimit, 0
-	votes := make([]coresdkpr.Vote, 0, limit)
 	daos := make([]string, 0, limit)
 	for {
 		list, err := h.dp.GetUserVotes(context.TODO(), *user.Address, coresdk.GetUserVotesRequest{
@@ -93,11 +92,11 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 				continue
 			}
 
-			if !slices.Contains(daos, item.DaoID.String()) {
-				daos = append(daos, item.DaoID.String())
+			if slices.Contains(daos, item.DaoID.String()) {
+				continue
 			}
 
-			votes = append(votes, item)
+			daos = append(daos, item.DaoID.String())
 		}
 
 		if len(list.Items) < limit {
@@ -126,7 +125,7 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 		}
 	}
 
-	ua.Progress = max(counter, ua.Goal)
+	ua.Progress = min(counter, ua.Goal)
 	if ua.Progress >= ua.Goal {
 		now := time.Now()
 		ua.AchievedAt = &now

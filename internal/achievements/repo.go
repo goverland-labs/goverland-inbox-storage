@@ -35,7 +35,7 @@ select
     ua.created_at,
     a.params,
     a.type,
-    coalesce(params->'goals', '1') goal,
+    coalesce(a.params->'goals', '1') goal,
     ua.progress
 from user_achievements ua
 inner join achievements a on a.id = ua.achievement_id
@@ -84,4 +84,78 @@ func (r *Repo) SaveAchievement(ua *UserAchievement) error {
 			Progress:   ua.Progress,
 		}).
 		Error
+}
+
+// GetActualByUserID returns the result available for display for the user
+func (r *Repo) GetActualByUserID(userID uuid.UUID) ([]*UserAchievement, error) {
+	query := `
+select
+    ua.user_id,
+    ua.achievement_id,
+    a.title,
+    a.subtitle,
+    a.description,
+    a.achievement_message,
+    a.image_path,
+    coalesce(a.params->'goals', '1') goal,
+    ua.progress,
+    ua.achieved_at,
+    ua.viewed_at,
+    a.exclusive
+from user_achievements ua
+inner join achievements a on a.id = ua.achievement_id
+where user_id = ?
+  and (
+    not a.exclusive or (a.exclusive and ua.achieved_at is not null)
+    )
+order by ua.achieved_at desc nulls last, a.sort_order`
+
+	rows, err := r.db.Raw(query, userID.String()).Rows()
+	if err != nil {
+		return nil, fmt.Errorf("get active by user: %w", err)
+	}
+
+	defer rows.Close()
+
+	list := []*UserAchievement{}
+	for rows.Next() {
+		ua := &UserAchievement{}
+
+		err = rows.Scan(
+			&ua.UserID,
+			&ua.AchievementID,
+			&ua.Title,
+			&ua.Subtitle,
+			&ua.Description,
+			&ua.AchievementMessage,
+			&ua.ImagePath,
+			&ua.Goal,
+			&ua.Progress,
+			&ua.AchievedAt,
+			&ua.ViewedAt,
+			&ua.Exclusive,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("convert row: %w", err)
+		}
+
+		list = append(list, ua)
+	}
+
+	return list, nil
+}
+
+// MarkAsViewed mark only achieved items once
+func (r *Repo) MarkAsViewed(userID uuid.UUID, achievementID string) error {
+	return r.db.
+		Exec(`
+			update user_achievements 
+			set viewed_at = now() 
+			where 
+			    	user_id = ? 
+			  	and achievement_id = ? 
+			  	and achieved_at is not null
+			  	and viewed_at is null`,
+			userID, achievementID,
+		).Error
 }

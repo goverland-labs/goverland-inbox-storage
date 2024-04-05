@@ -36,3 +36,11 @@ alter table user_sessions
 alter table user_achievements
     add constraint idx_user_achievements_user_achievement
         unique (user_id, achievement_id);
+
+alter table achievements
+    add achievement_message text;
+
+alter table achievements
+    alter column achievement_message set default '';
+
+
