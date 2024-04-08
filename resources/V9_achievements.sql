@@ -51,5 +51,22 @@ insert into user_achievements (user_id, achievement_id)
 on conflict (user_id, achievement_id) DO NOTHING;
 
 update user_achievements
-set achieved_at = now(), progress = 1
+set achieved_at = now(),
+    progress    = 1
 where achievement_id = 'early-tester';
+
+alter table achievements
+    alter column blocked_by type text using blocked_by::text;
+
+alter table achievements
+    rename column image_path to images;
+
+update achievements
+set images = '[]'
+where images <> '';
+
+alter table achievements
+    alter column images type jsonb using images::jsonb;
+
+alter table achievements
+    alter column images set default '[]';

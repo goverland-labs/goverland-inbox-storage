@@ -9,6 +9,11 @@ import (
 	pevents "github.com/goverland-labs/goverland-platform-events/events/inbox"
 )
 
+type Image struct {
+	Size string
+	Path string
+}
+
 type UserAchievement struct {
 	UserID             uuid.UUID
 	AchievementID      string
@@ -16,7 +21,7 @@ type UserAchievement struct {
 	Subtitle           string
 	Description        string
 	AchievementMessage string
-	ImagePath          string
+	Images             []Image
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	AchievedAt         *time.Time
@@ -24,6 +29,7 @@ type UserAchievement struct {
 	Exclusive          bool
 	Type               AchievementType
 	Params             json.RawMessage
+	BLockedBy          string
 	Goal               int
 	Progress           int
 }

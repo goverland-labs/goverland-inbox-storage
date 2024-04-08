@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Achievements implementation
+
 ## [0.0.24] - 2024-03-26
 
 ### Changed

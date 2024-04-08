@@ -1,6 +1,7 @@
 package achievements
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -96,12 +97,13 @@ select
     a.subtitle,
     a.description,
     a.achievement_message,
-    a.image_path,
+    a.images,
     coalesce(a.params->'goals', '1') goal,
     ua.progress,
     ua.achieved_at,
     ua.viewed_at,
-    a.exclusive
+    a.exclusive,
+    coalesce(a.blocked_by, '') blocked_by
 from user_achievements ua
 inner join achievements a on a.id = ua.achievement_id
 where user_id = ?
@@ -121,6 +123,8 @@ order by ua.achieved_at desc nulls last, a.sort_order`
 	for rows.Next() {
 		ua := &UserAchievement{}
 
+		var images string
+
 		err = rows.Scan(
 			&ua.UserID,
 			&ua.AchievementID,
@@ -128,15 +132,20 @@ order by ua.achieved_at desc nulls last, a.sort_order`
 			&ua.Subtitle,
 			&ua.Description,
 			&ua.AchievementMessage,
-			&ua.ImagePath,
+			&images,
 			&ua.Goal,
 			&ua.Progress,
 			&ua.AchievedAt,
 			&ua.ViewedAt,
 			&ua.Exclusive,
+			&ua.BLockedBy,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("convert row: %w", err)
+		}
+
+		if err = json.Unmarshal([]byte(images), &ua.Images); err != nil {
+			return nil, fmt.Errorf("unmarshal images: %w", err)
 		}
 
 		list = append(list, ua)

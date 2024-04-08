@@ -47,13 +47,21 @@ func (s *Server) GetUserAchievementList(_ context.Context, req *proto.GetUserAch
 			viewedAt = timestamppb.New(*achievement.ViewedAt)
 		}
 
+		images := make([]*proto.Image, 0, len(achievement.Images))
+		for _, image := range achievement.Images {
+			images = append(images, &proto.Image{
+				Size: image.Size,
+				Path: image.Path,
+			})
+		}
+
 		resp.List = append(resp.List, &proto.AchievementInfo{
 			Id:                 achievement.AchievementID,
 			Title:              achievement.Title,
 			Subtitle:           achievement.Subtitle,
 			Description:        achievement.Description,
 			AchievementMessage: achievement.AchievementMessage,
-			Image:              achievement.ImagePath,
+			Images:             images,
 			Progress: &proto.Progress{
 				Goal:    uint32(achievement.Goal),
 				Current: uint32(achievement.Progress),
