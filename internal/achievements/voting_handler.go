@@ -67,7 +67,9 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 	// get user with address
 	user, err := h.ug.GetByID(ua.UserID)
 	if err != nil {
-		return fmt.Errorf("get user by id: %w", err)
+		log.Err(err).Msgf("get user by id: %s", ua.UserID)
+
+		return nil
 	}
 
 	if !user.HasAddress() {

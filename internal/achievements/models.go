@@ -21,7 +21,7 @@ type UserAchievement struct {
 	Subtitle           string
 	Description        string
 	AchievementMessage string
-	Images             []Image
+	Images             []Image `gorm:"-"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	AchievedAt         *time.Time
