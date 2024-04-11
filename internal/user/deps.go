@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 
-	goverlandcorewebsdk "github.com/goverland-labs/core-web-sdk"
-	"github.com/goverland-labs/core-web-sdk/proposal"
+	goverlandcorewebsdk "github.com/goverland-labs/goverland-core-sdk-go"
+	"github.com/goverland-labs/goverland-core-sdk-go/proposal"
 )
 
 type CoreClient interface {

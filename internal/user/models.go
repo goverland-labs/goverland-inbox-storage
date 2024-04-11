@@ -54,8 +54,10 @@ type Session struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	DeviceUUID string
-	DeviceName string
+	DeviceUUID  string
+	DeviceName  string
+	AppVersion  string
+	AppPlatform string
 
 	LastActivityAt time.Time
 }

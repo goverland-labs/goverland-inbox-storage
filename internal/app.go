@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	coresdk "github.com/goverland-labs/core-web-sdk"
+	coresdk "github.com/goverland-labs/goverland-core-sdk-go"
 	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
 	"github.com/goverland-labs/goverland-platform-events/pkg/natsclient"
 	"github.com/goverland-labs/inbox-api/protobuf/inboxapi"
@@ -19,6 +19,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/goverland-labs/inbox-storage/internal/achievements"
 	"github.com/goverland-labs/inbox-storage/internal/config"
 	"github.com/goverland-labs/inbox-storage/internal/metrics"
 	"github.com/goverland-labs/inbox-storage/internal/proposal"
@@ -39,7 +40,9 @@ type Application struct {
 	db      *gorm.DB
 
 	proposalService *proposal.Service
+	sr              *user.SessionRepo
 	us              *user.Service
+	as              *achievements.Service
 	sub             *subscription.Service
 	settings        *settings.Service
 	ensClient       enspb.EnsClient
@@ -146,8 +149,6 @@ func (a *Application) initServices() error {
 		return err
 	}
 
-	_ = pb
-
 	a.initProposals()
 	if err = a.initSubscription(); err != nil {
 		return err
@@ -155,7 +156,10 @@ func (a *Application) initServices() error {
 	if err = a.initPushes(); err != nil {
 		return err
 	}
-	a.initUsers()
+	a.initUsers(pb)
+	if err = a.initAchievements(nc); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -182,7 +186,7 @@ func (a *Application) initProposals() {
 	a.proposalService = proposal.NewService(repo)
 }
 
-func (a *Application) initUsers() {
+func (a *Application) initUsers(pb *natsclient.Publisher) {
 	repo := user.NewRepo(a.db)
 	sessionRepo := user.NewSessionRepo(a.db)
 	authNonceRepo := user.NewAuthNonceRepo(a.db)
@@ -190,13 +194,42 @@ func (a *Application) initUsers() {
 
 	canVoteService := user.NewCanVoteService(canVoteRepo, repo, a.coreClient)
 
-	a.us = user.NewService(repo, sessionRepo, authNonceRepo, canVoteService, a.zerionService, a.sub, a.ensClient)
+	a.sr = sessionRepo
+	a.us = user.NewService(
+		repo,
+		sessionRepo,
+		authNonceRepo,
+		canVoteService,
+		a.zerionService,
+		a.sub,
+		a.ensClient,
+		pb,
+	)
 
 	ensWorker := user.NewEnsResolverWorker(repo, a.ensClient)
 	a.manager.AddWorker(process.NewCallbackWorker("ens_resolver", ensWorker.Start))
 
 	canVoteWorker := user.NewCanVoteWorker(canVoteService)
 	a.manager.AddWorker(process.NewCallbackWorker("can_vote", canVoteWorker.Start))
+}
+
+func (a *Application) initAchievements(nc *nats.Conn) error {
+	repo := achievements.NewRepo(a.db)
+	service := achievements.NewService(a.us, repo, []achievements.AchievementHandler{
+		achievements.NewAppInfoHandler(a.sr),
+		achievements.NewVotingHandler(a.coreClient, a.us),
+	})
+
+	a.as = service
+
+	cs, err := achievements.NewConsumer(nc, service)
+	if err != nil {
+		return fmt.Errorf("achievements consumer: %w", err)
+	}
+
+	a.manager.AddWorker(process.NewCallbackWorker("achievements-consumer", cs.Start))
+
+	return nil
 }
 
 func (a *Application) initPrometheusWorker() error {
@@ -247,6 +280,7 @@ func (a *Application) initAPI() error {
 	inboxapi.RegisterUserServer(srv, user.NewServer(a.us))
 	inboxapi.RegisterProposalServer(srv, proposal.NewServer(a.proposalService))
 	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
+	inboxapi.RegisterAchievementServer(srv, achievements.NewServer(a.as))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/goverland-labs/goverland-helpers-ens-resolver/protocol/enspb"
+	"github.com/goverland-labs/goverland-platform-events/events/inbox"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
@@ -32,6 +33,10 @@ type WalletPositioner interface {
 	GetWalletPositions(address string) ([]uuid.UUID, error)
 }
 
+type Publisher interface {
+	PublishJSON(ctx context.Context, subject string, obj any) error
+}
+
 type Service struct {
 	repo           *Repo
 	sessionRepo    *SessionRepo
@@ -40,6 +45,8 @@ type Service struct {
 	canVoteService *CanVoteService
 	wp             WalletPositioner
 	sc             SubscriptionCollector
+
+	publisher Publisher
 
 	ensClient enspb.EnsClient
 }
@@ -52,6 +59,7 @@ func NewService(
 	wp WalletPositioner,
 	sc SubscriptionCollector,
 	ensClient enspb.EnsClient,
+	publisher Publisher,
 ) *Service {
 	return &Service{
 		repo:           repo,
@@ -62,6 +70,7 @@ func NewService(
 		wp:             wp,
 		sc:             sc,
 		ensClient:      ensClient,
+		publisher:      publisher,
 	}
 }
 
@@ -193,6 +202,8 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 		UserID:         user.ID,
 		DeviceUUID:     request.DeviceUUID,
 		DeviceName:     request.DeviceName,
+		AppVersion:     request.AppVersion,
+		AppPlatform:    request.AppPlatform,
 		LastActivityAt: time.Now(),
 	}
 
@@ -209,6 +220,19 @@ func (s *Service) CreateSession(request CreateSessionRequest) (*Session, error) 
 				log.Error().Err(err).Str("user", user.ID.String()).Msg("cannot calculate user can vote")
 			}
 		}()
+	}
+
+	if err = s.publisher.PublishJSON(context.TODO(), inbox.SubjectInitAchievement, inbox.AchievementInitEvent{
+		UserID: user.ID,
+	}); err != nil {
+		log.Error().Err(err).Msg("publish init achievement event")
+	}
+
+	if err = s.publisher.PublishJSON(context.TODO(), inbox.SubjectRecalculateAchievement, inbox.AchievementRecalculateEvent{
+		UserID: user.ID,
+		Type:   inbox.AchievementTypeAppInfo,
+	}); err != nil {
+		log.Error().Err(err).Msg("publish init achievement event")
 	}
 
 	return &session, nil

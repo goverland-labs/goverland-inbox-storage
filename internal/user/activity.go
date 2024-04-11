@@ -107,7 +107,7 @@ func (s *Service) AllowSendingPush(userID uuid.UUID) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("s.calculateActivePeriods: %w", err)
 	}
-	if intervals == nil || len(intervals) == 0 {
+	if len(intervals) == 0 {
 		return true, nil
 	}
 
