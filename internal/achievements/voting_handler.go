@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ const (
 	goverlandAppName = "goverland"
 	defaultLimit     = 100
 	defaultChunkSize = 15
+	defaultTTL       = 15 * time.Second
 )
 
 type UserGetter interface {
@@ -38,9 +40,17 @@ type VotesParams struct {
 	Verified bool `json:"verified"`
 }
 
+type data struct {
+	expiredAt time.Time
+	list      []coresdkdao.Dao
+}
+
 type VotingHandler struct {
 	dp DataProvider
 	ug UserGetter
+
+	cache map[string]data
+	mu    sync.RWMutex
 }
 
 func NewVotingHandler(dp DataProvider, ug UserGetter) *VotingHandler {
@@ -78,15 +88,55 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 		return nil
 	}
 
+	list, err := h.getVotes(*user.Address)
+	if err != nil {
+		return fmt.Errorf("get votes: %w", err)
+	}
+
+	counter := 0
+	for _, info := range list {
+		if details.Verified && !info.Verified {
+			continue
+		}
+
+		counter++
+	}
+
+	ua.Progress = min(counter, ua.Goal)
+	if ua.Progress >= ua.Goal {
+		now := time.Now()
+		ua.AchievedAt = &now
+	}
+
+	return nil
+}
+
+func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
+	for chunkSize < len(items) {
+		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
+	}
+	return append(chunks, items)
+}
+
+// micro optimization for getting votes for similar achievements types
+func (h *VotingHandler) getVotes(address string) ([]coresdkdao.Dao, error) {
+	h.mu.RLock()
+	val, ok := h.cache[address]
+	h.mu.RUnlock()
+	if ok && !val.expiredAt.After(time.Now()) {
+		return val.list, nil
+	}
+
+	val.list = make([]coresdkdao.Dao, 0, defaultLimit)
 	limit, offset := defaultLimit, 0
 	daos := make([]string, 0, limit)
 	for {
-		list, err := h.dp.GetUserVotes(context.TODO(), *user.Address, coresdk.GetUserVotesRequest{
+		list, err := h.dp.GetUserVotes(context.TODO(), address, coresdk.GetUserVotesRequest{
 			Offset: offset,
 			Limit:  limit,
 		})
 		if err != nil {
-			return fmt.Errorf("get user votes: %w", err)
+			return nil, fmt.Errorf("get user votes: %w", err)
 		}
 
 		for _, item := range list.Items {
@@ -108,37 +158,22 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 		offset += limit
 	}
 
-	counter := 0
 	for idx, chunk := range chunkBy(daos, defaultChunkSize) {
 		list, err := h.dp.GetDaoList(context.TODO(), coresdk.GetDaoListRequest{
 			Limit:  len(chunk),
 			DaoIDS: chunk,
 		})
 		if err != nil {
-			return fmt.Errorf("get dao list: %d: %w", idx, err)
+			return nil, fmt.Errorf("get dao list: %d: %w", idx, err)
 		}
 
-		for _, info := range list.Items {
-			if details.Verified && !info.Verified {
-				continue
-			}
-
-			counter++
-		}
+		val.list = append(val.list, list.Items...)
 	}
 
-	ua.Progress = min(counter, ua.Goal)
-	if ua.Progress >= ua.Goal {
-		now := time.Now()
-		ua.AchievedAt = &now
-	}
+	val.expiredAt = time.Now().Add(defaultTTL)
+	h.mu.Lock()
+	h.cache[address] = val
+	h.mu.Unlock()
 
-	return nil
-}
-
-func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
-	for chunkSize < len(items) {
-		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
-	}
-	return append(chunks, items)
+	return val.list, nil
 }
