@@ -110,7 +110,7 @@ where user_id = ?
   and (
     not a.exclusive or (a.exclusive and ua.achieved_at is not null)
     )
-order by ua.achieved_at desc nulls last, a.sort_order`
+order by a.sort_order`
 
 	rows, err := r.db.Raw(query, userID.String()).Rows()
 	if err != nil {
