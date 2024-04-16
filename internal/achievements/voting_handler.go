@@ -41,7 +41,7 @@ type VotesParams struct {
 }
 
 type data struct {
-	expiredAt time.Time
+	expiresAt time.Time
 	list      []coresdkdao.Dao
 }
 
@@ -55,8 +55,10 @@ type VotingHandler struct {
 
 func NewVotingHandler(dp DataProvider, ug UserGetter) *VotingHandler {
 	return &VotingHandler{
-		dp: dp,
-		ug: ug,
+		dp:    dp,
+		ug:    ug,
+		cache: make(map[string]data),
+		mu:    sync.RWMutex{},
 	}
 }
 
@@ -88,7 +90,7 @@ func (h *VotingHandler) Process(ua *UserAchievement) error {
 		return nil
 	}
 
-	list, err := h.getVotes(*user.Address)
+	list, err := h.getUniqueDaoListByVotes(*user.Address)
 	if err != nil {
 		return fmt.Errorf("get votes: %w", err)
 	}
@@ -119,12 +121,15 @@ func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
 }
 
 // micro optimization for getting votes for similar achievements types
-func (h *VotingHandler) getVotes(address string) ([]coresdkdao.Dao, error) {
+func (h *VotingHandler) getUniqueDaoListByVotes(address string) ([]coresdkdao.Dao, error) {
 	h.mu.RLock()
 	val, ok := h.cache[address]
 	h.mu.RUnlock()
-	if ok && !val.expiredAt.After(time.Now()) {
-		return val.list, nil
+	if ok && !val.expiresAt.After(time.Now()) {
+		list := make([]coresdkdao.Dao, 0, len(val.list))
+		copy(list, val.list)
+
+		return list, nil
 	}
 
 	val.list = make([]coresdkdao.Dao, 0, defaultLimit)
@@ -170,7 +175,7 @@ func (h *VotingHandler) getVotes(address string) ([]coresdkdao.Dao, error) {
 		val.list = append(val.list, list.Items...)
 	}
 
-	val.expiredAt = time.Now().Add(defaultTTL)
+	val.expiresAt = time.Now().Add(defaultTTL)
 	h.mu.Lock()
 	h.cache[address] = val
 	h.mu.Unlock()
