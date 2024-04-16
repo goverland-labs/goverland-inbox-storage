@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.26] - 2024-04-16
+
 ### Changed
 - Add micro optimization for getting votes for user
 - Achievements sorting
