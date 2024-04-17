@@ -21,8 +21,9 @@ const (
 
 type (
 	fungibleInfo struct {
-		Symbol  string
-		Address string
+		InternalID uuid.UUID
+		Symbol     string
+		Address    string
 	}
 
 	RecommendationMapper interface {
@@ -34,7 +35,7 @@ type (
 		rm  RecommendationMapper
 
 		mappingMu sync.RWMutex
-		mapping   map[uuid.UUID]fungibleInfo
+		mapping   []fungibleInfo
 	}
 )
 
@@ -52,19 +53,20 @@ func NewService(api *zerion.Client, rm RecommendationMapper) (*Service, error) {
 			}
 
 			if err == nil {
-				mapping := make(map[uuid.UUID]fungibleInfo)
+				mapping := make([]fungibleInfo, 0, len(data))
 				for _, d := range data {
-					mapping[uuid.MustParse(d.InternalId)] = fungibleInfo{
-						Symbol:  d.Symbol,
-						Address: d.Address,
-					}
+					mapping = append(mapping, fungibleInfo{
+						InternalID: uuid.MustParse(d.InternalId),
+						Symbol:     d.Symbol,
+						Address:    d.Address,
+					})
 				}
 
 				service.mappingMu.Lock()
 				service.mapping = mapping
 				service.mappingMu.Unlock()
 
-				log.Info().Msg("recommendations updated")
+				log.Info().Msgf("recommendations updated with %d items", len(mapping))
 			}
 
 			<-time.After(syncRecommendationsTTL)
@@ -85,7 +87,7 @@ func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
 	for _, data := range resp.Positions {
 		fi := data.Attributes.FungibleInfo
 
-		for name, info := range s.mapping {
+		for _, info := range s.mapping {
 			if info.Symbol != fi.Symbol {
 				continue
 			}
@@ -95,11 +97,11 @@ func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
 					continue
 				}
 
-				if slices.Contains(list, name) {
+				if slices.Contains(list, info.InternalID) {
 					continue
 				}
 
-				list = append(list, name)
+				list = append(list, info.InternalID)
 				break
 			}
 		}
