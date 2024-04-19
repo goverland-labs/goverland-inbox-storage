@@ -59,8 +59,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 h1:EGx4pi6eqNxGa
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
 github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
-github.com/goverland-labs/goverland-core-sdk-go v0.1.5-0.20240418102113-8d82ef1ced7b h1:PEb8wJOCOyVXJV1MO902d5oaqTdGD9k+FRWsb8ukWqI=
-github.com/goverland-labs/goverland-core-sdk-go v0.1.5-0.20240418102113-8d82ef1ced7b/go.mod h1:8OPh3hODfwLE4ckzY3DRJ4Shs6RXdUGB/KN8o+L6kT4=
+github.com/goverland-labs/goverland-core-sdk-go v0.1.5 h1:vw4IUrqYu/Y9/XxQ82IiQQJdKR6K7o5hJ+tFwLYusWI=
+github.com/goverland-labs/goverland-core-sdk-go v0.1.5/go.mod h1:8OPh3hODfwLE4ckzY3DRJ4Shs6RXdUGB/KN8o+L6kT4=
 github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0 h1:Gc0aRk6jL9zJV2Ce5h+bsIl49OJHn3m27IPVeYOJTrE=
 github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0/go.mod h1:jyJGoBmFVY0o6b/3PNy5+bHtKqff6m/kw0eq4g0knBc=
 github.com/goverland-labs/goverland-platform-events v0.2.2 h1:mChMEzjE5FDPMadhBCkyNMuEiX/+byLWquw3oU5XWjw=
