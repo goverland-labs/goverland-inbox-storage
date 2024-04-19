@@ -1,46 +1,101 @@
 package zerion
 
 import (
-	"encoding/csv"
+	"context"
 	"fmt"
-	"io"
-	"os"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/goverland-labs/goverland-core-sdk-go/dao"
+	"github.com/rs/zerolog/log"
 
 	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
 )
 
+const (
+	syncRecommendationsTTL   = time.Minute * 15
+	reloadRecommendationsTTL = time.Second * 10
+)
+
 type (
 	fungibleInfo struct {
-		Symbol  string
-		ChainID string
-		Address string
-		DaoID   string
+		InternalID uuid.UUID
+		Symbol     string
+		Address    string
+	}
+
+	RecommendationMapper interface {
+		GetDaoRecommendations(ctx context.Context) (dao.Recommendations, error)
 	}
 
 	Service struct {
-		api     *zerion.Client
-		mapping map[uuid.UUID]fungibleInfo
+		api *zerion.Client
+		rm  RecommendationMapper
+
+		mappingMu sync.RWMutex
+		mapping   []fungibleInfo
 	}
 )
 
-func NewService(api *zerion.Client, path string) (*Service, error) {
-	mapping, err := prepareMapping(path)
-	if err != nil {
-		return nil, fmt.Errorf("prepare mapping: %w", err)
+func NewService(api *zerion.Client, rm RecommendationMapper) (*Service, error) {
+	service := &Service{
+		api: api,
+		rm:  rm,
 	}
 
-	return &Service{
-		api:     api,
-		mapping: mapping,
-	}, nil
+	go func() {
+		for {
+			data, err := service.rm.GetDaoRecommendations(context.TODO())
+			if err != nil {
+				log.Err(err).Msg("get recommendations")
+
+				<-time.After(reloadRecommendationsTTL)
+				continue
+			}
+
+			if len(data) == 0 {
+				log.Warn().Msgf("no recommendations found, will be reloaded in %s", reloadRecommendationsTTL)
+
+				<-time.After(reloadRecommendationsTTL)
+				continue
+			}
+
+			mapping := make([]fungibleInfo, 0, len(data))
+			for _, d := range data {
+				mapping = append(mapping, fungibleInfo{
+					InternalID: uuid.MustParse(d.InternalId),
+					Symbol:     d.Symbol,
+					Address:    d.Address,
+				})
+			}
+
+			service.mappingMu.Lock()
+			service.mapping = mapping
+			service.mappingMu.Unlock()
+
+			log.Info().Msgf("recommendations updated with %d items", len(mapping))
+
+			<-time.After(syncRecommendationsTTL)
+		}
+	}()
+
+	return service, nil
 }
 
 // GetWalletPositions returns list of internal dao id based on mapping config
 func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
+	s.mappingMu.RLock()
+	mapping := make([]fungibleInfo, len(s.mapping))
+	copy(mapping, s.mapping)
+	s.mappingMu.RUnlock()
+
+	if len(mapping) == 0 {
+		return nil, nil
+	}
+
 	resp, err := s.api.GetWalletPositions(address)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet positions by API: %w", err)
@@ -50,7 +105,7 @@ func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
 	for _, data := range resp.Positions {
 		fi := data.Attributes.FungibleInfo
 
-		for name, info := range s.mapping {
+		for _, info := range mapping {
 			if info.Symbol != fi.Symbol {
 				continue
 			}
@@ -60,53 +115,15 @@ func (s *Service) GetWalletPositions(address string) ([]uuid.UUID, error) {
 					continue
 				}
 
-				if slices.Contains(list, name) {
+				if slices.Contains(list, info.InternalID) {
 					continue
 				}
 
-				list = append(list, name)
+				list = append(list, info.InternalID)
 				break
 			}
 		}
 	}
 
 	return list, nil
-}
-
-func prepareMapping(filePath string) (map[uuid.UUID]fungibleInfo, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("open file: %w", err)
-	}
-	defer f.Close()
-
-	csvr := csv.NewReader(f)
-
-	info := map[uuid.UUID]fungibleInfo{}
-	for {
-		data, err := csvr.Read()
-		if err == io.EOF {
-			return info, nil
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("read csv: %w", err)
-		}
-
-		if len(data) != 6 {
-			return nil, fmt.Errorf("wrong data format")
-		}
-
-		id, err := uuid.Parse(data[1])
-		if err != nil {
-			return nil, fmt.Errorf("wrong dao uuid: %s: %w", data[1], err)
-		}
-
-		info[id] = fungibleInfo{
-			Symbol:  data[3],
-			ChainID: data[4],
-			Address: data[5],
-			DaoID:   data[0],
-		}
-	}
 }

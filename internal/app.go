@@ -311,7 +311,7 @@ func (a *Application) initZerionAPI() error {
 	a.zerionAPI = zc
 
 	var err error
-	if a.zerionService, err = zerion.NewService(zc, a.cfg.Zerion.MappingPath); err != nil {
+	if a.zerionService, err = zerion.NewService(zc, a.coreClient); err != nil {
 		return fmt.Errorf("init zerion service: %w", err)
 	}
 

@@ -35,6 +35,5 @@ RUN apk update && \
 WORKDIR /opt
 
 COPY --from=builder /opt/bin/ ./
-COPY resources/data ./
 
 CMD ["./application"]

@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Use recommendations from core storage instead of prepared data
+
 ## [0.0.26] - 2024-04-16
 
 ### Changed
