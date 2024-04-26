@@ -111,6 +111,10 @@ func (s *Server) GetUserProfile(ctx context.Context, req *proto.GetUserProfileRe
 
 	profileInfo, err := s.sp.GetProfileInfo(userID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+
 		log.Error().Err(err).Msgf("get profile info")
 
 		return nil, status.Error(codes.Internal, "internal error")
