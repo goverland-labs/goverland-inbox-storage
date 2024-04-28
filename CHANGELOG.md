@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Fixed getting user by address method
+
 ## [0.0.28] - 2024-04-26
 
 ### Changed

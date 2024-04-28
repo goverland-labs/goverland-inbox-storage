@@ -44,9 +44,10 @@ func (r *Repo) GetByUuid(uuid string) (*User, error) {
 	return &user, nil
 }
 
+// GetByAddress TODO: think about address format, for now we check in lower case
 func (r *Repo) GetByAddress(address string) (*User, error) {
 	var user User
-	request := r.db.Where(User{Address: &address}).Take(&user)
+	request := r.db.Where("lower(address) = lower(?)", address).Take(&user)
 	if err := request.Error; err != nil {
 		return nil, fmt.Errorf("get user by address #%s: %w", address, err)
 	}
