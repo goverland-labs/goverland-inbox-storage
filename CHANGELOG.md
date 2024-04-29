@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.30] - 2024-04-29
+
+### Fixed
+- Getting voting stats from cache
+
 ## [0.0.29] - 2024-04-28
 
 ### Fixed

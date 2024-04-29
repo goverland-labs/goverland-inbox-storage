@@ -125,8 +125,8 @@ func (h *VotingHandler) getUniqueDaoListByVotes(address string) ([]coresdkdao.Da
 	h.mu.RLock()
 	val, ok := h.cache[address]
 	h.mu.RUnlock()
-	if ok && !val.expiresAt.After(time.Now()) {
-		list := make([]coresdkdao.Dao, 0, len(val.list))
+	if ok && val.expiresAt.After(time.Now()) {
+		list := make([]coresdkdao.Dao, len(val.list))
 		copy(list, val.list)
 
 		return list, nil
