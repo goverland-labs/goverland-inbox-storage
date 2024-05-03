@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.31] - 2024-05-03
+
 ### Fixed
 - Prefill subscribers list on application bootstrap
 
