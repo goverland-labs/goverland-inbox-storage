@@ -126,6 +126,45 @@ func (s *Service) GetSubscribers(_ context.Context, daoID uuid.UUID) ([]uuid.UUI
 	return response, nil
 }
 
+func (s *Service) InitSubscribers() error {
+	start := time.Now()
+	limit, offset := 100, 0
+	subscribersByDao := make(map[string][]uuid.UUID)
+	for {
+		data, err := s.repo.GetByFilters([]Filter{
+			PageFilter{Limit: limit, Offset: offset},
+		})
+		if err != nil {
+			return fmt.Errorf("get subscribers [%d/%d]: %w", limit, offset, err)
+		}
+
+		for _, sub := range data.Subscriptions {
+			daoID := sub.DaoID.String()
+			if _, ok := subscribersByDao[daoID]; !ok {
+				subscribersByDao[daoID] = make([]uuid.UUID, 0, limit)
+			}
+
+			subscribersByDao[daoID] = append(subscribersByDao[daoID], sub.UserID)
+		}
+
+		offset += limit
+
+		if len(data.Subscriptions) < limit {
+			break
+		}
+	}
+
+	for daoID, subs := range subscribersByDao {
+		log.Info().Msgf("dao %s has %d subscribers", daoID, len(subs))
+
+		s.cache.UpdateItems(daoID, subs...)
+	}
+
+	log.Info().Msgf("init subscribers finished in %s", time.Since(start))
+
+	return nil
+}
+
 // todo: add unscubscribe
 func (s *Service) makeGlobalSubscription(ctx context.Context, daoID uuid.UUID) error {
 	key := fmt.Sprintf("global_%s", daoID.String())
