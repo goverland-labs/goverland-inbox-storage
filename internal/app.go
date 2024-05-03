@@ -263,6 +263,10 @@ func (a *Application) initSubscription() error {
 
 	a.sub = service
 
+	if err := service.InitSubscribers(); err != nil {
+		return fmt.Errorf("init subscribers service: %w", err)
+	}
+
 	return nil
 }
 
