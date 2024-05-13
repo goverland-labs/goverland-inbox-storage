@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Hide achievements for guests
+
 ## [0.0.31] - 2024-05-03
 
 ### Fixed

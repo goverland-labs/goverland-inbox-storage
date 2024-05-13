@@ -59,6 +59,16 @@ func (s *Service) recalc(_ context.Context, userID uuid.UUID, atype AchievementT
 }
 
 func (s *Service) GetActualByUserID(userID uuid.UUID) ([]*UserAchievement, error) {
+	userInfo, err := s.up.GetByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	// guest user should not have an achievements
+	if userInfo.IsGuest() {
+		return nil, nil
+	}
+
 	actual, err := s.repo.GetActualByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("get actual achievements: %w", err)
