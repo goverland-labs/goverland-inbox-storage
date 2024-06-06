@@ -6,8 +6,10 @@ import (
 
 type TokenProvider interface {
 	GetByUserID(userID string) (string, error)
-	Save(userID, token string) error
-	Delete(userID string) error
+	GetByUserAndDevice(userID, deviceUUID string) (string, error)
+	GetListByUserID(userID string) ([]PushDetails, error)
+	Save(userID, deviceUUID, token string) error
+	Delete(userID, deviceUUID string) error
 }
 
 type Service struct {
@@ -20,18 +22,27 @@ func NewService(t TokenProvider) *Service {
 	}
 }
 
-func (s *Service) GetByUserID(userID string) (string, error) {
-	return s.tokens.GetByUserID(userID)
+func (s *Service) GetByUserAndDevice(userID, deviceUUID string) (string, error) {
+	return s.tokens.GetByUserAndDevice(userID, deviceUUID)
 }
 
-func (s *Service) DeleteByUserID(userID string) error {
-	return s.tokens.Delete(userID)
+func (s *Service) DeleteByUserID(userID, deviceUUID string) error {
+	return s.tokens.Delete(userID, deviceUUID)
 }
 
-func (s *Service) Upsert(userID, token string) error {
-	if err := s.tokens.Save(userID, token); err != nil {
+func (s *Service) Upsert(userID, deviceUUID, token string) error {
+	if err := s.tokens.Save(userID, deviceUUID, token); err != nil {
 		return fmt.Errorf("save token: %s: %w", userID, err)
 	}
 
 	return nil
+}
+
+func (s *Service) GetListByUserID(userID string) ([]PushDetails, error) {
+	list, err := s.tokens.GetListByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("get token list: %w", err)
+	}
+
+	return list, nil
 }
