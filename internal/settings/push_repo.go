@@ -58,7 +58,7 @@ func (s *PushRepo) getPathByUserDevice(userID, deviceUUID string) string {
 }
 
 func (s *PushRepo) GetListByUserID(userID string) ([]PushDetails, error) {
-	sec, err := s.cli.Read(s.getPathByUser(userID))
+	sec, err := s.cli.List(s.getPathByUser(userID))
 	if err != nil {
 		return nil, err
 	}
