@@ -43,11 +43,15 @@ func (s *Server) AddPushToken(_ context.Context, req *proto.AddPushTokenRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid token")
 	}
 
+	if req.GetDeviceUuid() == "" {
+		return nil, status.Error(codes.InvalidArgument, "invalid device uuid")
+	}
+
 	if _, err := s.users.GetByID(userID); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	if err := s.sp.Upsert(req.GetUserId(), req.GetToken()); err != nil {
+	if err := s.sp.Upsert(req.GetUserId(), req.GetDeviceUuid(), req.GetToken()); err != nil {
 		log.Error().Err(err).Msgf("upsert token for user: %s", req.GetUserId())
 
 		return nil, status.Error(codes.Internal, "internal error")
@@ -66,7 +70,7 @@ func (s *Server) RemovePushToken(_ context.Context, req *proto.RemovePushTokenRe
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	if err := s.sp.DeleteByUserID(req.GetUserId()); err != nil {
+	if err := s.sp.DeleteByUserID(req.GetUserId(), req.GetDeviceUuid()); err != nil {
 		log.Error().Err(err).Msgf("delete token for user: %s", req.GetUserId())
 
 		return nil, status.Error(codes.Internal, "internal error")
@@ -85,7 +89,7 @@ func (s *Server) PushTokenExists(_ context.Context, req *proto.PushTokenExistsRe
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	_, err = s.sp.GetByUserID(req.GetUserId())
+	_, err = s.sp.GetByUserAndDevice(req.GetUserId(), req.GetDeviceUuid())
 	if err != nil && !errors.Is(err, ErrTokenNotFound) {
 		log.Error().Err(err).Msgf("get token for user: %s", req.GetUserId())
 
@@ -112,7 +116,7 @@ func (s *Server) GetPushToken(_ context.Context, req *proto.GetPushTokenRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	token, err := s.sp.GetByUserID(req.GetUserId())
+	token, err := s.sp.GetByUserAndDevice(req.GetUserId(), req.GetDeviceUuid())
 	if err != nil {
 		if !errors.Is(err, ErrTokenNotFound) {
 			return nil, status.Error(codes.InvalidArgument, "invalid user ID")
@@ -125,4 +129,23 @@ func (s *Server) GetPushToken(_ context.Context, req *proto.GetPushTokenRequest)
 	return &proto.PushTokenResponse{
 		Token: token,
 	}, nil
+}
+
+func (s *Server) GetPushTokenList(_ context.Context, req *proto.GetPushTokenListRequest) (*proto.PushTokenListResponse, error) {
+	list, err := s.sp.GetListByUserID(req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	resp := &proto.PushTokenListResponse{
+		Tokens: make([]*proto.PushTokenDetails, len(list)),
+	}
+	for i := range list {
+		resp.Tokens[i] = &proto.PushTokenDetails{
+			Token:      list[i].Token,
+			DeviceUuid: list[i].DeviceUUID,
+		}
+	}
+
+	return resp, nil
 }
