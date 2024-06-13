@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.33] - 2024-06-13
+
 ### Changed
 - Separate storing tokens by device
 
