@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.34] - 2024-06-14
+
 ### Fix
 - Comparing APP versions in achievements
 
