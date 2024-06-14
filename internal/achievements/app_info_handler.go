@@ -78,7 +78,7 @@ func (h *AppInfoHandler) Process(ua *UserAchievement) error {
 			return fmt.Errorf("converting app version: %w", err)
 		}
 
-		if sessVersion.LessThan(from) && sessVersion.GreaterThan(to) {
+		if !versionInWindow(sessVersion, from, to) {
 			continue
 		}
 
@@ -94,4 +94,12 @@ func (h *AppInfoHandler) Process(ua *UserAchievement) error {
 	}
 
 	return nil
+}
+
+func versionInWindow(source, from, to *versions.Version) bool {
+	if source.LessThan(from) || source.GreaterThan(to) {
+		return false
+	}
+
+	return true
 }
