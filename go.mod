@@ -9,7 +9,7 @@ require (
 	github.com/goverland-labs/goverland-core-sdk-go v0.1.5
 	github.com/goverland-labs/goverland-helpers-ens-resolver/protocol v0.1.0
 	github.com/goverland-labs/goverland-platform-events v0.2.2
-	github.com/goverland-labs/inbox-api v0.0.26
+	github.com/goverland-labs/inbox-api v0.0.27-0.20240618152021-7a8f93864c1c
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/hashicorp/go-version v1.6.0
@@ -20,6 +20,7 @@ require (
 	github.com/s-larionov/process-manager v0.0.1
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.4
+	go.openly.dev/pointy v1.3.0
 	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.33.0
 	gorm.io/driver/postgres v1.5.2
