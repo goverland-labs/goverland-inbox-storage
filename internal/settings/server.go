@@ -5,13 +5,11 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"gorm.io/gorm"
-
-	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 
 	"github.com/goverland-labs/inbox-storage/internal/user"
 )
@@ -169,10 +167,6 @@ func (s *Server) SetPushDetails(_ context.Context, req *proto.SetPushDetailsRequ
 
 func (s *Server) GetPushDetails(_ context.Context, req *proto.GetPushDetailsRequest) (*proto.GetPushDetailsResponse, error) {
 	details, err := s.sp.GetPushDetails(uuid.MustParse(req.GetUserId()))
-	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Error(codes.NotFound, "push details not found")
-	}
-
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

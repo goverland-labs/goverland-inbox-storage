@@ -61,7 +61,7 @@ func (r *DetailsRepo) GetByUserAndType(userID uuid.UUID, dt DetailsType) (*Detai
 }
 
 func (r *DetailsRepo) StoreDetails(info *Details) error {
-	return r.db.
+	err := r.db.
 		Model(&Details{}).
 		Where("user_id = ?", info.UserID).
 		Where("type = ?", info.Type).
@@ -69,5 +69,8 @@ func (r *DetailsRepo) StoreDetails(info *Details) error {
 			UpdatedAt: time.Now(),
 			Value:     info.Value,
 		}).
+		FirstOrCreate(&info).
 		Error
+
+	return err
 }

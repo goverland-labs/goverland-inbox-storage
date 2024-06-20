@@ -2,9 +2,12 @@ package settings
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"go.openly.dev/pointy"
+	"gorm.io/gorm"
 )
 
 type DetailsManipulator interface {
@@ -59,6 +62,11 @@ func (s *Service) GetListByUserID(userID string) ([]PushDetails, error) {
 
 func (s *Service) GetPushDetails(userID uuid.UUID) (*PushSettingsDetails, error) {
 	details, err := s.details.GetByUserAndType(userID, DetailsTypePushConfig)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// default logic for getting pushes
+		return getPushDefaultSettings(), nil
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get push details: %w", err)
 	}
@@ -73,13 +81,20 @@ func (s *Service) GetPushDetails(userID uuid.UUID) (*PushSettingsDetails, error)
 
 func (s *Service) StorePushDetails(userID uuid.UUID, req PushSettingsDetails) error {
 	details, err := s.details.GetByUserAndType(userID, DetailsTypePushConfig)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("get push details: %w", err)
 	}
 
-	var psd PushSettingsDetails
-	if err = json.Unmarshal(details.Value, &psd); err != nil {
-		return fmt.Errorf("unmarshal push details: %w", err)
+	psd := getPushDefaultSettings()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		details = &Details{
+			UserID: userID,
+			Type:   DetailsTypePushConfig,
+		}
+	} else {
+		if err = json.Unmarshal(details.Value, psd); err != nil {
+			return fmt.Errorf("unmarshal push details: %w", err)
+		}
 	}
 
 	if req.NewProposalCreated != nil {
@@ -106,4 +121,13 @@ func (s *Service) StorePushDetails(userID uuid.UUID, req PushSettingsDetails) er
 	details.Value = raw
 
 	return s.details.StoreDetails(details)
+}
+
+func getPushDefaultSettings() *PushSettingsDetails {
+	return &PushSettingsDetails{
+		NewProposalCreated: pointy.Bool(true),
+		QuorumReached:      pointy.Bool(true),
+		VoteFinishesSoon:   pointy.Bool(true),
+		VoteFinished:       pointy.Bool(true),
+	}
 }
