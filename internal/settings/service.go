@@ -131,3 +131,65 @@ func getPushDefaultSettings() *PushSettingsDetails {
 		VoteFinished:       pointy.Bool(true),
 	}
 }
+
+func (s *Service) GetFeedSettings(userID uuid.UUID) (*FeedSettings, error) {
+	details, err := s.details.GetByUserAndType(userID, DetailsTypeFeedConfig)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// default logic for getting config
+		return getDefaultFeedSettings(), nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("get push details: %w", err)
+	}
+
+	var fsd FeedSettings
+	if err = json.Unmarshal(details.Value, &fsd); err != nil {
+		return nil, fmt.Errorf("unmarshal push details: %w", err)
+	}
+
+	return &fsd, nil
+}
+
+func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
+	details, err := s.details.GetByUserAndType(userID, DetailsTypeFeedConfig)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("get push details: %w", err)
+	}
+
+	fsd := getDefaultFeedSettings()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		details = &Details{
+			UserID: userID,
+			Type:   DetailsTypeFeedConfig,
+		}
+	} else {
+		if err = json.Unmarshal(details.Value, fsd); err != nil {
+			return fmt.Errorf("unmarshal push details: %w", err)
+		}
+	}
+
+	if req.ArchiveProposalAfterVote != nil {
+		fsd.ArchiveProposalAfterVote = req.ArchiveProposalAfterVote
+	}
+
+	if req.AutoarchiveAfterDuration != nil {
+		fsd.AutoarchiveAfterDuration = req.AutoarchiveAfterDuration
+	}
+
+	raw, err := json.Marshal(fsd)
+	if err != nil {
+		return fmt.Errorf("marshal push details: %w", err)
+	}
+
+	details.Value = raw
+
+	return s.details.StoreDetails(details)
+}
+
+func getDefaultFeedSettings() *FeedSettings {
+	return &FeedSettings{
+		ArchiveProposalAfterVote: pointy.Bool(true),
+		AutoarchiveAfterDuration: pointy.String("7d"),
+	}
+}
