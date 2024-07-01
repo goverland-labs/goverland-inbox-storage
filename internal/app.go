@@ -173,8 +173,9 @@ func (a *Application) initPushes() error {
 	}
 
 	vc.SetToken(a.cfg.Vault.Token)
-	repo := settings.NewPushRepo(vc.Logical(), a.cfg.Vault.BasePath)
-	service := settings.NewService(repo)
+	pushRepo := settings.NewPushRepo(vc.Logical(), a.cfg.Vault.BasePath)
+	detailsRepo := settings.NewDetailsRepo(a.db)
+	service := settings.NewService(pushRepo, detailsRepo)
 
 	a.settings = service
 
