@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2024-07-01
+### Added
+- Implement push settings server methods
+
+
 ## [0.0.34] - 2024-06-14
 
 ### Fix
