@@ -196,7 +196,7 @@ func (s *Server) SetFeedSettings(_ context.Context, req *proto.SetFeedSettingsRe
 	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) GetSetFeedSettings(_ context.Context, req *proto.GetFeedSettingsRequest) (*proto.GetFeedSettingsResponse, error) {
+func (s *Server) GetFeedSettings(_ context.Context, req *proto.GetFeedSettingsRequest) (*proto.GetFeedSettingsResponse, error) {
 	fs, err := s.sp.GetFeedSettings(uuid.MustParse(req.GetUserId()))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

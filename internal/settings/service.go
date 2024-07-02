@@ -189,7 +189,7 @@ func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
 
 func getDefaultFeedSettings() *FeedSettings {
 	return &FeedSettings{
-		ArchiveProposalAfterVote: pointy.Bool(true),
+		ArchiveProposalAfterVote: pointy.Bool(false),
 		AutoarchiveAfterDuration: pointy.String("7d"),
 	}
 }
