@@ -1,11 +1,15 @@
 package settings
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/goverland-labs/goverland-platform-events/events/inbox"
+	"github.com/rs/zerolog/log"
 	"go.openly.dev/pointy"
 	"gorm.io/gorm"
 )
@@ -23,15 +27,21 @@ type TokenProvider interface {
 	Delete(userID, deviceUUID string) error
 }
 
-type Service struct {
-	tokens  TokenProvider
-	details DetailsManipulator
+type Publisher interface {
+	PublishJSON(ctx context.Context, subject string, obj any) error
 }
 
-func NewService(t TokenProvider, dm DetailsManipulator) *Service {
+type Service struct {
+	tokens    TokenProvider
+	details   DetailsManipulator
+	publisher Publisher
+}
+
+func NewService(t TokenProvider, dm DetailsManipulator, publisher Publisher) *Service {
 	return &Service{
-		tokens:  t,
-		details: dm,
+		tokens:    t,
+		details:   dm,
+		publisher: publisher,
 	}
 }
 
@@ -184,7 +194,23 @@ func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
 
 	details.Value = raw
 
-	return s.details.StoreDetails(details)
+	if err = s.details.StoreDetails(details); err != nil {
+		return fmt.Errorf("store push details: %w", err)
+	}
+
+	go func() {
+		d, _ := time.ParseDuration(pointy.StringValue(fsd.AutoarchiveAfterDuration, "7d"))
+		days := int(d.Hours() / 24)
+
+		if err = s.publisher.PublishJSON(context.TODO(), inbox.SubjectFeedSettingsUpdated, inbox.FeedSettingsPayload{
+			SubscriberID:         details.UserID,
+			AutoarchiveAfterDays: days,
+		}); err != nil {
+			log.Err(err).Msg("publish feed settings update")
+		}
+	}()
+
+	return nil
 }
 
 func getDefaultFeedSettings() *FeedSettings {
