@@ -5,13 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/goverland-labs/goverland-platform-events/events/inbox"
 	"github.com/rs/zerolog/log"
 	"go.openly.dev/pointy"
 	"gorm.io/gorm"
+)
+
+var (
+	availableAutoArchiveDurations = map[string]int{
+		"1d":  1,
+		"3d":  3,
+		"7d":  7,
+		"30d": 30,
+	}
 )
 
 type DetailsManipulator interface {
@@ -199,8 +207,10 @@ func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
 	}
 
 	go func() {
-		d, _ := time.ParseDuration(pointy.StringValue(fsd.AutoarchiveAfterDuration, "7d"))
-		days := int(d.Hours() / 24)
+		days, ok := availableAutoArchiveDurations[pointy.StringValue(fsd.AutoarchiveAfterDuration, "1d")]
+		if !ok {
+			days = 1
+		}
 
 		if err = s.publisher.PublishJSON(context.TODO(), inbox.SubjectFeedSettingsUpdated, inbox.FeedSettingsPayload{
 			SubscriberID:         details.UserID,
@@ -216,6 +226,6 @@ func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
 func getDefaultFeedSettings() *FeedSettings {
 	return &FeedSettings{
 		ArchiveProposalAfterVote: pointy.Bool(false),
-		AutoarchiveAfterDuration: pointy.String("7d"),
+		AutoarchiveAfterDuration: pointy.String("1d"),
 	}
 }
