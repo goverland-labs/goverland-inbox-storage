@@ -13,6 +13,7 @@ type DetailsType string
 
 const (
 	DetailsTypePushConfig DetailsType = "push_config"
+	DetailsTypeFeedConfig DetailsType = "feed_config"
 )
 
 type Details struct {
@@ -29,6 +30,11 @@ type PushSettingsDetails struct {
 	QuorumReached      *bool `json:"quorum_reached,omitempty"`
 	VoteFinishesSoon   *bool `json:"vote_finishes_soon,omitempty"`
 	VoteFinished       *bool `json:"vote_finished,omitempty"`
+}
+
+type FeedSettings struct {
+	ArchiveProposalAfterVote *bool   `json:"archive_proposal_after_vote,omitempty"`
+	AutoarchiveAfterDuration *string `json:"autoarchive_after_duration,omitempty"`
 }
 
 func (Details) TableName() string {

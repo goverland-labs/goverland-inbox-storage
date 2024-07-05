@@ -181,3 +181,32 @@ func (s *Server) GetPushDetails(_ context.Context, req *proto.GetPushDetailsRequ
 		},
 	}, nil
 }
+
+func (s *Server) SetFeedSettings(_ context.Context, req *proto.SetFeedSettingsRequest) (*emptypb.Empty, error) {
+	details := FeedSettings{
+		ArchiveProposalAfterVote: req.GetFeedSettings().ArchiveProposalAfterVote,
+		AutoarchiveAfterDuration: req.GetFeedSettings().AutoarchiveAfterDuration,
+	}
+
+	err := s.sp.StoreFeedSettings(uuid.MustParse(req.GetUserId()), details)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) GetFeedSettings(_ context.Context, req *proto.GetFeedSettingsRequest) (*proto.GetFeedSettingsResponse, error) {
+	fs, err := s.sp.GetFeedSettings(uuid.MustParse(req.GetUserId()))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &proto.GetFeedSettingsResponse{
+		UserId: req.GetUserId(),
+		FeedSettings: &proto.FeedSettings{
+			ArchiveProposalAfterVote: fs.ArchiveProposalAfterVote,
+			AutoarchiveAfterDuration: fs.AutoarchiveAfterDuration,
+		},
+	}, nil
+}

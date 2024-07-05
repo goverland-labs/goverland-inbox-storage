@@ -153,7 +153,7 @@ func (a *Application) initServices() error {
 	if err = a.initSubscription(); err != nil {
 		return err
 	}
-	if err = a.initPushes(); err != nil {
+	if err = a.initPushes(pb); err != nil {
 		return err
 	}
 	a.initUsers(pb)
@@ -164,7 +164,7 @@ func (a *Application) initServices() error {
 	return nil
 }
 
-func (a *Application) initPushes() error {
+func (a *Application) initPushes(pb *natsclient.Publisher) error {
 	vc, err := vaultapi.NewClient(&vaultapi.Config{
 		Address: a.cfg.Vault.Address,
 	})
@@ -175,7 +175,7 @@ func (a *Application) initPushes() error {
 	vc.SetToken(a.cfg.Vault.Token)
 	pushRepo := settings.NewPushRepo(vc.Logical(), a.cfg.Vault.BasePath)
 	detailsRepo := settings.NewDetailsRepo(a.db)
-	service := settings.NewService(pushRepo, detailsRepo)
+	service := settings.NewService(pushRepo, detailsRepo, pb)
 
 	a.settings = service
 

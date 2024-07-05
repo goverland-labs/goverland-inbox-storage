@@ -1,11 +1,15 @@
 package settings
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/goverland-labs/goverland-platform-events/events/inbox"
+	"github.com/rs/zerolog/log"
 	"go.openly.dev/pointy"
 	"gorm.io/gorm"
 )
@@ -23,15 +27,21 @@ type TokenProvider interface {
 	Delete(userID, deviceUUID string) error
 }
 
-type Service struct {
-	tokens  TokenProvider
-	details DetailsManipulator
+type Publisher interface {
+	PublishJSON(ctx context.Context, subject string, obj any) error
 }
 
-func NewService(t TokenProvider, dm DetailsManipulator) *Service {
+type Service struct {
+	tokens    TokenProvider
+	details   DetailsManipulator
+	publisher Publisher
+}
+
+func NewService(t TokenProvider, dm DetailsManipulator, publisher Publisher) *Service {
 	return &Service{
-		tokens:  t,
-		details: dm,
+		tokens:    t,
+		details:   dm,
+		publisher: publisher,
 	}
 }
 
@@ -129,5 +139,83 @@ func getPushDefaultSettings() *PushSettingsDetails {
 		QuorumReached:      pointy.Bool(true),
 		VoteFinishesSoon:   pointy.Bool(true),
 		VoteFinished:       pointy.Bool(true),
+	}
+}
+
+func (s *Service) GetFeedSettings(userID uuid.UUID) (*FeedSettings, error) {
+	details, err := s.details.GetByUserAndType(userID, DetailsTypeFeedConfig)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// default logic for getting config
+		return getDefaultFeedSettings(), nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("get push details: %w", err)
+	}
+
+	var fsd FeedSettings
+	if err = json.Unmarshal(details.Value, &fsd); err != nil {
+		return nil, fmt.Errorf("unmarshal push details: %w", err)
+	}
+
+	return &fsd, nil
+}
+
+func (s *Service) StoreFeedSettings(userID uuid.UUID, req FeedSettings) error {
+	details, err := s.details.GetByUserAndType(userID, DetailsTypeFeedConfig)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("get push details: %w", err)
+	}
+
+	fsd := getDefaultFeedSettings()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		details = &Details{
+			UserID: userID,
+			Type:   DetailsTypeFeedConfig,
+		}
+	} else {
+		if err = json.Unmarshal(details.Value, fsd); err != nil {
+			return fmt.Errorf("unmarshal push details: %w", err)
+		}
+	}
+
+	if req.ArchiveProposalAfterVote != nil {
+		fsd.ArchiveProposalAfterVote = req.ArchiveProposalAfterVote
+	}
+
+	if req.AutoarchiveAfterDuration != nil {
+		fsd.AutoarchiveAfterDuration = req.AutoarchiveAfterDuration
+	}
+
+	raw, err := json.Marshal(fsd)
+	if err != nil {
+		return fmt.Errorf("marshal push details: %w", err)
+	}
+
+	details.Value = raw
+
+	if err = s.details.StoreDetails(details); err != nil {
+		return fmt.Errorf("store push details: %w", err)
+	}
+
+	go func() {
+		d, _ := time.ParseDuration(pointy.StringValue(fsd.AutoarchiveAfterDuration, "7d"))
+		days := int(d.Hours() / 24)
+
+		if err = s.publisher.PublishJSON(context.TODO(), inbox.SubjectFeedSettingsUpdated, inbox.FeedSettingsPayload{
+			SubscriberID:         details.UserID,
+			AutoarchiveAfterDays: days,
+		}); err != nil {
+			log.Err(err).Msg("publish feed settings update")
+		}
+	}()
+
+	return nil
+}
+
+func getDefaultFeedSettings() *FeedSettings {
+	return &FeedSettings{
+		ArchiveProposalAfterVote: pointy.Bool(false),
+		AutoarchiveAfterDuration: pointy.String("7d"),
 	}
 }
