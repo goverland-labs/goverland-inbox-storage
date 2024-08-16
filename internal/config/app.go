@@ -10,4 +10,5 @@ type App struct {
 	Core       Core
 	Vault      Vault
 	Zerion     Zerion
+	AI         AI
 }
