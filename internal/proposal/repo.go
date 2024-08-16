@@ -34,6 +34,13 @@ func (r *Repo) GetFeaturedProposals(date time.Time) ([]Featured, error) {
 
 // GetCurrentAIRequestsCount returns the number of requests by user and address since start of month
 func (r *Repo) GetCurrentAIRequestsCount(userID string, address string) (int64, error) {
+	var (
+		dummy AIRequest
+		_     = dummy.UserID
+		_     = dummy.Address
+		_     = dummy.CreatedAt
+	)
+
 	var count int64
 
 	err := r.db.
@@ -59,6 +66,12 @@ func beginningOfMonth(now time.Time) time.Time {
 
 // AISummaryRequested return if user requested proposal id by address
 func (r *Repo) AISummaryRequested(address string, proposalID string) (bool, error) {
+	var (
+		dummy AIRequest
+		_     = dummy.Address
+		_     = dummy.ProposalID
+	)
+
 	var req AIRequest
 	err := r.db.
 		Where(
@@ -89,6 +102,11 @@ func (r *Repo) CreateAISummary(sum *AISummary) error {
 
 // GetSummary returns saved summary of the AI provider
 func (r *Repo) GetSummary(proposalID string) (string, error) {
+	var (
+		dummy AISummary
+		_     = dummy.ProposalID
+	)
+
 	var info AISummary
 	err := r.db.
 		Where(
