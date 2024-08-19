@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -63,7 +64,16 @@ func (s *Server) GetAISummary(_ context.Context, req *proto.GetAISummaryRequest)
 	})
 
 	if errors.Is(err, ErrRequestLimitExceeded) {
-		return nil, status.Error(codes.ResourceExhausted, err.Error())
+		serr := status.New(codes.ResourceExhausted, err.Error())
+		serr, _ = serr.WithDetails(&errdetails.QuotaFailure{
+			Violations: []*errdetails.QuotaFailure_Violation{
+				{
+					Description: "You've reached your AI summarization limit for this month",
+				},
+			},
+		})
+
+		return nil, serr.Err()
 	}
 
 	if errors.Is(err, ErrUserInvalidState) {
