@@ -124,7 +124,7 @@ func (s *Service) getAiSummary(ctx context.Context, proposalID string) (string, 
 	if pr.Discussion != "" {
 		summary, err = s.aiProvider.GetSummaryByDiscussionLink(ctx, pr.Discussion)
 	} else {
-		summary, err = s.aiProvider.GetSummaryByProposalLink(ctx, pr.Link)
+		summary, err = s.aiProvider.GetSummaryByDescription(ctx, pr.Body)
 	}
 
 	if err != nil {

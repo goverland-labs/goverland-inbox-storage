@@ -28,6 +28,10 @@ func (c *AIClient) GetSummaryByDiscussionLink(ctx context.Context, link string) 
 	return c.do(ctx, fmt.Sprintf("I need the brief digest up to 70 words with important points for the %s with opinion of participants on it", link))
 }
 
+func (c *AIClient) GetSummaryByDescription(ctx context.Context, description string) (string, error) {
+	return c.do(ctx, fmt.Sprintf("I need the brief digest up to 70 words with important points for the following text: %s", description))
+}
+
 // do make request to the ChatGPT with provided string request
 func (c *AIClient) do(ctx context.Context, req string) (string, error) {
 	var err error
