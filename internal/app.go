@@ -149,7 +149,6 @@ func (a *Application) initServices() error {
 		return err
 	}
 
-	a.initProposals()
 	if err = a.initSubscription(); err != nil {
 		return err
 	}
@@ -160,6 +159,7 @@ func (a *Application) initServices() error {
 	if err = a.initAchievements(nc); err != nil {
 		return err
 	}
+	a.initProposals()
 
 	return nil
 }
@@ -183,8 +183,10 @@ func (a *Application) initPushes(pb *natsclient.Publisher) error {
 }
 
 func (a *Application) initProposals() {
-	repo := proposal.NewFeaturedRepo(a.db)
-	a.proposalService = proposal.NewService(repo)
+	repo := proposal.NewRepo(a.db)
+
+	aiClient := proposal.NewAIClient(a.cfg.AI.ExternalClientKey)
+	a.proposalService = proposal.NewService(repo, a.us, a.coreClient, aiClient, a.cfg.AI.MonthlyRateLimit)
 }
 
 func (a *Application) initUsers(pb *natsclient.Publisher) {
