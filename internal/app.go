@@ -20,6 +20,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/goverland-labs/inbox-storage/internal/achievements"
+	"github.com/goverland-labs/inbox-storage/internal/appversions"
 	"github.com/goverland-labs/inbox-storage/internal/config"
 	"github.com/goverland-labs/inbox-storage/internal/metrics"
 	"github.com/goverland-labs/inbox-storage/internal/proposal"
@@ -44,6 +45,7 @@ type Application struct {
 	us              *user.Service
 	as              *achievements.Service
 	sub             *subscription.Service
+	vs              *appversions.Service
 	settings        *settings.Service
 	ensClient       enspb.EnsClient
 	coreClient      *coresdk.Client
@@ -160,6 +162,7 @@ func (a *Application) initServices() error {
 		return err
 	}
 	a.initProposals()
+	a.initAppVersions()
 
 	return nil
 }
@@ -235,6 +238,13 @@ func (a *Application) initAchievements(nc *nats.Conn) error {
 	return nil
 }
 
+func (a *Application) initAppVersions() {
+	repo := appversions.NewRepo(a.db)
+	service := appversions.NewService(repo)
+
+	a.vs = service
+}
+
 func (a *Application) initPrometheusWorker() error {
 	srv := prometheus.NewServer(a.cfg.Prometheus.Listen, "/metrics")
 	a.manager.AddWorker(process.NewServerWorker("prometheus", srv))
@@ -288,6 +298,7 @@ func (a *Application) initAPI() error {
 	inboxapi.RegisterProposalServer(srv, proposal.NewServer(a.proposalService))
 	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
 	inboxapi.RegisterAchievementServer(srv, achievements.NewServer(a.as))
+	inboxapi.RegisterAppVersionsServer(srv, appversions.NewServer(a.vs))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
 
