@@ -80,26 +80,39 @@ func (r *Repo) AddRecentlyView(rv RecentlyViewed) error {
 	return r.db.Create(&rv).Error
 }
 
-func (r *Repo) GetLastViewed(filters []Filter) ([]RecentlyViewed, error) {
-	db := r.db.
-		Model(&RecentlyViewed{}).
-		Select("DISTINCT ON (type_id) type_id, *")
-	for _, f := range filters {
-		if _, ok := f.(PageFilter); ok {
-			continue
-		}
-		db = f.Apply(db)
+// todo: think how to get by filters correctly
+func (r *Repo) GetLastViewed(userID uuid.UUID, limit int64) ([]RecentlyViewed, error) {
+	query := `
+select lower(type_id), type, max(created_at) last_created_at
+from recently_viewed
+WHERE user_id = ?
+  AND type = ?
+  AND "recently_viewed"."deleted_at" IS NULL
+group by type_id, type
+order by last_created_at desc
+limit ?
+`
+	rows, err := r.db.Raw(query, userID.String(), "dao", limit).Rows()
+	if err != nil {
+		return nil, fmt.Errorf("get last viewed by user: %w", err)
 	}
 
-	for _, f := range filters {
-		if _, ok := f.(PageFilter); ok {
-			db = f.Apply(db)
-		}
-	}
+	defer rows.Close()
 
-	var list []RecentlyViewed
-	if err := db.Find(&list).Error; err != nil {
-		return nil, err
+	list := make([]RecentlyViewed, 0, limit)
+	for rows.Next() {
+		rv := RecentlyViewed{}
+
+		err = rows.Scan(
+			&rv.TypeID,
+			&rv.Type,
+			&rv.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("convert row: %w", err)
+		}
+
+		list = append(list, rv)
 	}
 
 	return list, nil

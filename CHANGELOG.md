@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2024-07-23
+
+### Fixed
+- Getting recent dao by raw query instead of filters
+
 ## [0.4.0] - 2024-07-22
 
 ### Added

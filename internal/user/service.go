@@ -246,8 +246,8 @@ func (s *Service) AddView(userID uuid.UUID, vt RecentlyType, id string) error {
 	})
 }
 
-func (s *Service) LastViewed(filters []Filter) ([]RecentlyViewed, error) {
-	list, err := s.repo.GetLastViewed(filters)
+func (s *Service) LastViewed(userID uuid.UUID, limit int64) ([]RecentlyViewed, error) {
+	list, err := s.repo.GetLastViewed(userID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("get last viewed: %w", err)
 	}

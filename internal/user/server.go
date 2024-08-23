@@ -214,15 +214,7 @@ func (s *Server) LastViewed(_ context.Context, req *proto.UserLastViewedRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	filters := []Filter{
-		UserIDFilter{ID: uuid.MustParse(req.GetUserId())},
-		TypeFilter{Type: convertRecentlyType(req.GetType())},
-		PageFilter{Limit: int(req.GetLimit())},
-		OrderByFilter{Field: "type_id", Desc: true},
-		OrderByFilter{Field: "created_at", Desc: true},
-	}
-
-	list, err := s.sp.LastViewed(filters)
+	list, err := s.sp.LastViewed(uuid.MustParse(req.GetUserId()), int64(req.GetLimit()))
 	if err != nil {
 		log.Error().Err(err).Msgf("get last viewed by user: %s", req.GetUserId())
 
