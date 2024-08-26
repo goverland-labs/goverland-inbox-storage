@@ -121,12 +121,8 @@ func (s *Service) getAiSummary(ctx context.Context, proposalID string) (string, 
 	}
 
 	var summary string
-	if pr.Discussion != "" {
-		summary, err = s.aiProvider.GetSummaryByDiscussionLink(ctx, pr.Discussion)
-	} else {
-		summary, err = s.aiProvider.GetSummaryByDescription(ctx, pr.Body)
-	}
-
+	// temporary disabled summarization by link due to discord issues
+	summary, err = s.aiProvider.GetSummaryByDescription(ctx, pr.Body)
 	if err != nil {
 		return "", fmt.Errorf("get summary from OpenAI: %w", err)
 	}

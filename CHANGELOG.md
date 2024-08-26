@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.8] - 2024-07-26
+
+### Fixed
+- Disable link AI summarization
+
 ## [0.4.6] - 2024-07-26
 
 ### Fixed
