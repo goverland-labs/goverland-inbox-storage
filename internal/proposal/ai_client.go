@@ -25,11 +25,11 @@ func (c *AIClient) GetSummaryByProposalLink(ctx context.Context, link string) (s
 }
 
 func (c *AIClient) GetSummaryByDiscussionLink(ctx context.Context, link string) (string, error) {
-	return c.do(ctx, fmt.Sprintf(`Your task is to make a brief but objective summarization. After that, I should be able to decide on voting without spending extra time and energy. If there are URLs in the proposal’s description, summarize the discussion and emphasize them separately in the main text. The summarization text should be brief—ideally within 100-200 words (or less, if possible). It should be in the most straightforward language possible (without losing meaning). Here is the link: %s`, link))
+	return c.do(ctx, fmt.Sprintf(`Your task is to make a brief but objective summarization. Highlight the most important parts, like whether funding is requested and whether the participants have a consensus in the comments. The summarization text should be brief—ideally within 100-200 words (or less, if possible). It should be in the most straightforward language possible (without losing meaning). Here is the link: %s`, link))
 }
 
 func (c *AIClient) GetSummaryByDescription(ctx context.Context, description string) (string, error) {
-	return c.do(ctx, fmt.Sprintf(`Your task is to make a brief but objective summarization. After that, I should be able to decide on voting without spending extra time and energy. If there are URLs in the proposal’s description, summarize the discussion and emphasize them separately in the main text. The summarization text should be brief—ideally within 100-200 words (or less, if possible). It should be in the most straightforward language possible (without losing meaning). Below is the text of the proposal. %s`, description))
+	return c.do(ctx, fmt.Sprintf(`Your task is to make a brief but objective summarization. Highlight the most important parts, like whether funding is requested and whether the participants have a consensus in the comments. The summarization text should be brief—ideally within 100-200 words (or less, if possible). It should be in the most straightforward language possible (without losing meaning). Below is the text of the proposal. %s`, description))
 }
 
 // do make request to the ChatGPT with provided string request
