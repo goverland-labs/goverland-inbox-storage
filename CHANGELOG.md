@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.4] - 2024-07-26
+
+### Added
+- Logging AI summary requests
+
 ## [0.4.3] - 2024-07-26
 
 ### Fixed

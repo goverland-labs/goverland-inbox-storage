@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/goverland-labs/inbox-storage/internal/metrics"
@@ -38,6 +39,8 @@ func (c *AIClient) do(ctx context.Context, req string) (string, error) {
 	defer func(start time.Time) {
 		metrics.CollectRequestsMetric("open_ai", "create_chat_completion", err, start)
 	}(time.Now())
+
+	log.Info().Msg(fmt.Sprintf("Getting summary for: %s", req))
 
 	client := openai.NewClient(c.apiKey)
 	resp, err := client.CreateChatCompletion(
