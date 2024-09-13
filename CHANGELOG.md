@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.8] - 2024-09-13
+
 ### Added
 - Added github actions for running tests, linter and building docker image
 
