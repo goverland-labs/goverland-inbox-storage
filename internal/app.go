@@ -127,7 +127,7 @@ func (a *Application) initDB() error {
 }
 
 func (a *Application) initEnsResolver() error {
-	conn, err := grpc.Dial(a.cfg.API.EnsResolverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(a.cfg.API.EnsResolverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("create connection with ens resolver: %v", err)
 	}
@@ -274,7 +274,7 @@ func (a *Application) initSubscription() error {
 	globalRepo := subscription.NewGlobalRepo(a.db)
 	cache := subscription.NewCache()
 
-	feedConn, err := grpc.Dial(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	feedConn, err := grpc.NewClient(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("create connection with storage server: %v", err)
 	}
