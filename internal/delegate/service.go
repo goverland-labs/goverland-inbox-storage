@@ -22,10 +22,10 @@ func (s *Service) ListAllowedDaos() ([]AllowedDao, error) {
 	return s.adRepo.List()
 }
 
-func (s *Service) StoreDelegated(_ context.Context, ud *UserDelegated) error {
+func (s *Service) StoreDelegated(_ context.Context, ud *UserDelegate) error {
 	return s.udRepo.Create(ud)
 }
 
-func (s *Service) GetLastDelegation(_ context.Context, userID uuid.UUID, daoID string) (*UserDelegated, error) {
+func (s *Service) GetLastDelegation(_ context.Context, userID uuid.UUID, daoID string) (*UserDelegate, error) {
 	return s.udRepo.GetLast(userID, daoID)
 }

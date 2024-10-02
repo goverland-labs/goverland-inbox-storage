@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserDelegated struct {
+type UserDelegate struct {
 	ID        uint `gorm:"primarykey"`
 	CreatedAt time.Time
 
@@ -28,12 +28,12 @@ func NewUserDelegatedRepo(db *gorm.DB) *UserDelegatedRepo {
 	return &UserDelegatedRepo{db: db}
 }
 
-func (r *UserDelegatedRepo) Create(userDelegated *UserDelegated) error {
+func (r *UserDelegatedRepo) Create(userDelegated *UserDelegate) error {
 	return r.db.Create(userDelegated).Error
 }
 
-func (r *UserDelegatedRepo) GetLast(userID uuid.UUID, daoID string) (*UserDelegated, error) {
-	var userDelegated UserDelegated
+func (r *UserDelegatedRepo) GetLast(userID uuid.UUID, daoID string) (*UserDelegate, error) {
+	var userDelegated UserDelegate
 	err := r.db.
 		Where("user_id = ? AND dao_id = ?", userID, daoID).
 		Order("created_at DESC").

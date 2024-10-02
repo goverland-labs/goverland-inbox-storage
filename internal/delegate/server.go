@@ -54,7 +54,7 @@ func (s *Server) StoreDelegated(ctx context.Context, req *proto.StoreDelegatedRe
 		exp = req.Expiration.AsTime()
 	}
 
-	err = s.sp.StoreDelegated(ctx, &UserDelegated{
+	err = s.sp.StoreDelegated(ctx, &UserDelegate{
 		UserID:     userUUID,
 		DaoID:      req.DaoId,
 		TxHash:     req.TxHash,
