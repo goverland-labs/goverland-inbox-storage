@@ -22,6 +22,7 @@ import (
 	"github.com/goverland-labs/inbox-storage/internal/achievements"
 	"github.com/goverland-labs/inbox-storage/internal/appversions"
 	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/inbox-storage/internal/delegate"
 	"github.com/goverland-labs/inbox-storage/internal/metrics"
 	"github.com/goverland-labs/inbox-storage/internal/proposal"
 	"github.com/goverland-labs/inbox-storage/internal/settings"
@@ -51,6 +52,7 @@ type Application struct {
 	coreClient      *coresdk.Client
 	zerionAPI       *zerionsdk.Client
 	zerionService   *zerion.Service
+	delegateService *delegate.Service
 }
 
 func NewApplication(cfg config.App) (*Application, error) {
@@ -125,7 +127,7 @@ func (a *Application) initDB() error {
 }
 
 func (a *Application) initEnsResolver() error {
-	conn, err := grpc.Dial(a.cfg.API.EnsResolverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(a.cfg.API.EnsResolverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("create connection with ens resolver: %v", err)
 	}
@@ -162,6 +164,7 @@ func (a *Application) initServices() error {
 		return err
 	}
 	a.initProposals()
+	a.initDelegates()
 	a.initAppVersions()
 
 	return nil
@@ -190,6 +193,13 @@ func (a *Application) initProposals() {
 
 	aiClient := proposal.NewAIClient(a.cfg.AI.ExternalClientKey)
 	a.proposalService = proposal.NewService(repo, a.us, a.coreClient, aiClient, a.cfg.AI.MonthlyRateLimit)
+}
+
+func (a *Application) initDelegates() {
+	adRepo := delegate.NewAllowedDaoRepo(a.db)
+	udRepo := delegate.NewUserDelegatedRepo(a.db)
+
+	a.delegateService = delegate.NewService(adRepo, udRepo)
 }
 
 func (a *Application) initUsers(pb *natsclient.Publisher) {
@@ -264,7 +274,7 @@ func (a *Application) initSubscription() error {
 	globalRepo := subscription.NewGlobalRepo(a.db)
 	cache := subscription.NewCache()
 
-	feedConn, err := grpc.Dial(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	feedConn, err := grpc.NewClient(a.cfg.API.FeedAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("create connection with storage server: %v", err)
 	}
@@ -299,6 +309,7 @@ func (a *Application) initAPI() error {
 	inboxapi.RegisterSettingsServer(srv, settings.NewServer(a.settings, a.us))
 	inboxapi.RegisterAchievementServer(srv, achievements.NewServer(a.as))
 	inboxapi.RegisterAppVersionsServer(srv, appversions.NewServer(a.vs))
+	inboxapi.RegisterDelegateServer(srv, delegate.NewServer(a.delegateService))
 
 	a.manager.AddWorker(grpcsrv.NewGrpcServerWorker("API", srv, a.cfg.API.Bind))
 
