@@ -3,7 +3,7 @@ package appversions
 import (
 	"context"
 
-	proto "github.com/goverland-labs/inbox-api/protobuf/inboxapi"
+	proto "github.com/goverland-labs/goverland-inbox-api-protocol/protobuf/inboxapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

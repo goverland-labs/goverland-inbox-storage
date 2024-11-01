@@ -1,4 +1,4 @@
 /.env
 /bin/*
 /tmp/*
-/inbox-storage
+/goverland-inbox-storage

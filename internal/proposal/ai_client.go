@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/sashabaranov/go-openai"
 
-	"github.com/goverland-labs/inbox-storage/internal/metrics"
+	"github.com/goverland-labs/goverland-inbox-storage/internal/metrics"
 )
 
 type AIClient struct {

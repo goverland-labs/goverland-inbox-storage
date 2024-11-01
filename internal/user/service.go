@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/goverland-labs/inbox-storage/internal/subscription"
+	"github.com/goverland-labs/goverland-inbox-storage/internal/subscription"
 )
 
 var (

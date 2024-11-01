@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	versions "github.com/hashicorp/go-version"
 
-	"github.com/goverland-labs/inbox-storage/internal/user"
+	"github.com/goverland-labs/goverland-inbox-storage/internal/user"
 )
 
 const (

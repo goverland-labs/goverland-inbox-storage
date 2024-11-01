@@ -14,7 +14,7 @@ import (
 	coresdkpr "github.com/goverland-labs/goverland-core-sdk-go/proposal"
 	"github.com/rs/zerolog/log"
 
-	internaluser "github.com/goverland-labs/inbox-storage/internal/user"
+	internaluser "github.com/goverland-labs/goverland-inbox-storage/internal/user"
 )
 
 const (

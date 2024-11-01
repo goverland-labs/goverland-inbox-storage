@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/goverland-labs/inbox-storage/internal/user"
+	"github.com/goverland-labs/goverland-inbox-storage/internal/user"
 )
 
 type UserProvider interface {

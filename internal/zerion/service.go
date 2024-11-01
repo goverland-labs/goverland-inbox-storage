@@ -12,7 +12,7 @@ import (
 	"github.com/goverland-labs/goverland-core-sdk-go/dao"
 	"github.com/rs/zerolog/log"
 
-	"github.com/goverland-labs/inbox-storage/pkg/sdk/zerion"
+	"github.com/goverland-labs/goverland-inbox-storage/pkg/sdk/zerion"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 	pevents "github.com/goverland-labs/goverland-platform-events/events/inbox"
 	client "github.com/goverland-labs/goverland-platform-events/pkg/natsclient"
 
-	"github.com/goverland-labs/inbox-storage/internal/config"
+	"github.com/goverland-labs/goverland-inbox-storage/internal/config"
 )
 
 const (
